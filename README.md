@@ -1,5 +1,5 @@
 # Win32 Application Framework
-VERSION:&emsp;&emsp;&emsp;1.0  
+VERSION:&emsp;&emsp;&emsp;PRE-ALPHA 1.0  
 DATE CREATED:&ensp;October 5, 2025  
 DATE UPDATED:&nbsp;October 5, 2025  
 AUTHOR:&emsp;&emsp;&emsp;&nbsp;Jacob Gosse  
