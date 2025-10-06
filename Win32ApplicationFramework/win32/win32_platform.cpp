@@ -1,4 +1,4 @@
-/*! \project    Win32 Application Framework
+/*! \project    Win32ApplicationFramework
     \file       win32\win32_platform.cpp
     \version    PRE-ALPHA 1.0
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality

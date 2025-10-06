@@ -1,4 +1,4 @@
-\project    Win32 Application Framework
+\project    Win32ApplicationFramework
 \version    PRE-ALPHA 1.0
 \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality 
             for window creation, message loops, and optional console output. Ideal as
