@@ -1,7 +1,7 @@
 /*!
 win32\framework.h
 Created: October 5, 2025
-Updated: October 5, 2025
+Updated: October 7, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Framework header file : Include file for standard system include files, or project specific include files.
@@ -39,5 +39,6 @@ Framework header file : Include file for standard system include files, or proje
 #include <stdexcept>
 #include <cstdio>
 #include <thread>
+#include <vector>
 
 #endif

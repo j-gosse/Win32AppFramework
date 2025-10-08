@@ -1,7 +1,7 @@
 /*!
 win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: October 5, 2025
+Updated: October 7, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -266,7 +266,6 @@ void Window::InitWindow()
 	m_hAccelTable = LoadAcceleratorsW(m_hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR));
 
 	// register window class
-	LoadStringW(m_hInstance, IDS_WINDOW_TITLE, m_windowName, MAX_LOADSTRING);
 	LoadStringW(m_hInstance, IDS_WINDOW_CLASS, m_windowClassName, MAX_LOADSTRING);
 	Window::RegisterWindowClass();
 
@@ -287,6 +286,9 @@ void Window::InitWindow()
 	AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, TRUE, dwExStyle);
 	int windowWidth = rect.right - rect.left;
 	int windowHeight = rect.bottom - rect.top;
+
+	// load window title
+	SetWindowTitle(L"WINDOW");
 
 	// create window
 	m_hWindow = Window::BuildWindow(m_hInstance, windowWidth, windowHeight, dwExStyle);

@@ -1,7 +1,7 @@
 /*!
 win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: October 5, 2025
+Updated: October 7, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -195,6 +195,17 @@ public:
 	* @return	ULONGLONG m_elapsedTime
 	*/
 	ULONGLONG GetElapsed() { return Elapsed(); }
+
+	/**
+	* @brief	Sets the window title.
+	* @param	const wchar_t* title : The title of the window.
+	*/
+	void SetWindowTitle(const wchar_t* title = nullptr)
+	{
+		if (title && *title) wcsncpy_s(m_windowName, title, static_cast<size_t>(MAX_LOADSTRING) - 1);
+		else LoadStringW(m_hInstance, IDS_WINDOW_TITLE, m_windowName, MAX_LOADSTRING);
+		if (m_hWindow) SetWindowTextW(m_hWindow, m_windowName);
+	}
 };
 
 #endif
