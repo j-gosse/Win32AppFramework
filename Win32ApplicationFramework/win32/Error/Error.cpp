@@ -1,5 +1,5 @@
 /*!
-win32\Console\Error.cpp
+win32\Error\Error.cpp
 Created: October 9, 2025
 Updated: October 9, 2025
 Copyright (c) 2025, Jacob Gosse

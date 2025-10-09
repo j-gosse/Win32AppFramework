@@ -34,6 +34,12 @@
     <Filter Include="Header Files\win32\Console">
       <UniqueIdentifier>{1e8b50c9-9c9d-411e-beb7-e6dab1407e7c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\win32\Error">
+      <UniqueIdentifier>{08024382-653a-4080-8904-a0e7099e803e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\win32\Error">
+      <UniqueIdentifier>{61e571bd-3dbe-42a0-aaa4-98a79d0e8a4c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="win32\win32_platform.cpp">
@@ -44,6 +50,9 @@
     </ClCompile>
     <ClCompile Include="win32\Console\Console.cpp">
       <Filter>Source Files\win32\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="win32\Error\Error.cpp">
+      <Filter>Source Files\win32\Error</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -64,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="win32\Console\Console.hpp">
       <Filter>Header Files\win32\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\Error\Error.hpp">
+      <Filter>Header Files\win32\Error</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

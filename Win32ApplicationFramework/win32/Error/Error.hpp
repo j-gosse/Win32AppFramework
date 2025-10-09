@@ -1,5 +1,5 @@
 /*!
-win32\Console\Error.hpp
+win32\Error\Error.hpp
 Created: October 9, 2025
 Updated: October 9, 2025
 Copyright (c) 2025, Jacob Gosse

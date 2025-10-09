@@ -1,14 +1,13 @@
 /*!
 win32\Console\Console.cpp
 Created: October 5, 2025
-Updated: October 7, 2025
+Updated: October 9, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console source file.
 */
 
 #include "Console.hpp"
-#include <win32/debug.h>
 
 /* CONSTRUCTORS */
 
