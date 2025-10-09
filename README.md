@@ -1,8 +1,8 @@
 # Win32 Application Framework
-VERSION:&emsp;&emsp;&emsp;PRE-ALPHA 1.2
-DATE CREATED:&ensp;October 5, 2025
-DATE UPDATED:&nbsp;October 9, 2025
-AUTHOR:&emsp;&emsp;&emsp;&nbsp;Jacob Gosse
+VERSION:&emsp;&emsp;&emsp;PRE-ALPHA 1.2  
+DATE CREATED:&ensp;October 5, 2025  
+DATE UPDATED:&nbsp;October 9, 2025  
+AUTHOR:&emsp;&emsp;&emsp;&nbsp;Jacob Gosse  
 
 A lightweight C++ framework that encapsulates core Win32 API functionality for 
 window creation, message loops, error handling, and optional console output. 
