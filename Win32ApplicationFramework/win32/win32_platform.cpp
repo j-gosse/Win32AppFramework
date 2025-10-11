@@ -1,12 +1,12 @@
 /*! \project    Win32ApplicationFramework
     \file       win32\win32_platform.cpp
-    \version    PRE-ALPHA 1.2
+    \version    PRE-ALPHA 1.3
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality
                 for window creation, message loops, error handling, and optional console 
                 output. Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
     \date       October 5, 2025
-    \updated    October 9, 2025
+    \updated    October 10, 2025
 
     \MSVC       /std:c++20
     \GNUC       -m64 -std=c++20
@@ -26,86 +26,140 @@
     limitations under the License.
 */
 
-#include <win32/Console/Console.hpp>
 #include <win32/Error/Error.hpp>
+#include <win32/Console/Console.hpp>
 #include <win32/Window/Window.hpp>
-#include <win32/debug.h>
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
+    // enable memory leak checking
+    #if defined(_DEBUG) && defined(_WIN32)
+    ENABLE_CRT_LEAK_CHECKING;
+    #endif
+
+    // init console
+    std::unique_ptr<Console, std::default_delete<Console>> console = std::make_unique<Console>(hInstance);
+
+    // init window
+    std::unique_ptr<Window, std::default_delete<Window>> window = std::make_unique<Window>(hInstance);
+
     try
     {
-        #if defined(_DEBUG) && defined(_WIN32)
-        ENABLE_CRT_LEAK_CHECKING;
-        ENABLE_CRT_DELAY_FREE_MEM;
-        #endif
-
-        // init console
-        std::unique_ptr<Console, std::default_delete<Console>> console = std::make_unique<Console>(hInstance);
-
-        // console test
-        console->WriteText(L"This is a really really really really really really really really long line that if necessary will be written across multiple lines based on the width of the console buffer. Does not wrap words.");
-        console->WriteText(L"gggg", static_cast<WORD>(FOREGROUND_RED));
-        console->WriteText(L"1111");
-        console->WriteText(L"gggg");
-        console->WriteText(L"gggg\n\n\n\n");
-        console->WriteText(L"gggg", static_cast<WORD>(0x0003));
-        console->WriteText(L"gggg");
-        console->WriteText(L"1111\n");
-        console->WriteText(L"gggg\n");
-
-        // error test
-        //SetLastError(ERROR_ACCESS_DENIED);
-        //throw Error(__FILE__, __func__, __LINE__);
-        //throw Error(__FILE__, __func__, __LINE__, L"Simulated test error");
-
-        // init window
-        std::unique_ptr<Window, std::default_delete<Window>> window = std::make_unique<Window>(hInstance);
-
-        // main loop
-        UINT wMsgFilterMin = 0;
-        UINT wMsgFilterMax = 0;
-        while (window->ProcessMessages(wMsgFilterMin, wMsgFilterMax))
+        try
         {
-            //std::wcout << window->GetElapsed() << L'\n';
+            // console test
+            console->WriteText(L"This is a really really really really really really really really long line that if necessary will be written across multiple lines based on the width of the console buffer. Does not wrap words.");
+            console->WriteText(L"gggg", static_cast<WORD>(FOREGROUND_RED));
+            console->WriteText(L"1111");
+            console->WriteText(L"gggg");
+            console->WriteText(L"gggg\n\n\n\n");
+            console->WriteText(L"gggg", static_cast<WORD>(0x0003));
+            console->WriteText(L"gggg");
+            console->WriteText(L"1111\n");
+            console->WriteText(L"gggg\n");
 
+            // error test
             /*
-            This is where the main loop logic or call to a update/render loop occurs.
-            For example:
-                obj->Update(window->GetWindow(), elapsedTime);
-                obj->Render(window->GetWindow());
+            throw std::runtime_error("Runtime error test.");
+
+            HANDLE hFile = CreateFileW(
+                L"Z:\\this\\path\\does\\not\\exist\\file.txt",
+                GENERIC_READ,
+                0,
+                nullptr,
+                OPEN_EXISTING,
+                FILE_ATTRIBUTE_NORMAL,
+                nullptr
+            );
+            THROW_IF_ERROR(hFile != INVALID_HANDLE_VALUE);
+            THROW_IF_ERROR_CTX(hFile != INVALID_HANDLE_VALUE, L"Throwing a test error.");
+
+            SetLastError(ERROR_ACCESS_DENIED);
+            THROW_ERROR();
+            THROW_ERROR_CTX(L"Throwing a test error.");
             */
 
-            Sleep(16);  // simulate ~60 FPS
+            // main loop
+            UINT wMsgFilterMin = 0;
+            UINT wMsgFilterMax = 0;
+            while (window->ProcessMessages(wMsgFilterMin, wMsgFilterMax))
+            {
+                //std::wcout << window->GetElapsed() << L'\n';
+
+                /*
+                This is where the main loop logic or call to a update/render loop occurs.
+                For example:
+                    obj->Update(window->GetWindow(), elapsedTime);
+                    obj->Render(window->GetWindow());
+                */
+
+                Sleep(16);  // simulate ~60 FPS
+            }
+
+            std::wcout << L"Exiting the main loop..." << std::endl;
+            OutputDebugStringW(L"Exiting the main loop...\n");
         }
-
-        window.reset();
-        window = nullptr;
-
-        std::wcout << L"\nProgram finished. Press any key to continue..." << std::endl;
-        _getch(); // waits for a single character input
-
-        console.reset();
-        console = nullptr;
-
-        OutputDebugStringW(L"Program finished.\n");
-
-        return 0;
+        catch (const Error& e)
+        {
+            e.MsgBox();
+            //RETHROW_ERROR();
+            RETHROW_ERROR_CTX(L"This is the inner catch context.");
+        }
+        catch (const std::exception& e)
+        {
+            MessageBoxExA(nullptr, e.what(), "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            RETHROW_ERROR();
+        }
+        catch (const char* msg)
+        {
+            MessageBoxExA(nullptr, msg, "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            RETHROW_ERROR();
+        }
+        catch (...)
+        {
+            const char* msg = "Unknown exception.";
+            MessageBoxExA(nullptr, msg, "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            RETHROW_ERROR();
+        }
     }
     catch (const Error& e)
     {
-        CRT_DUMP_MEMORY_LEAKS;
-
-        e.MsgBox();
+        std::cerr << "Caught Error (Error class): " << e.what() << "\n";
+        e.PrintCauseChain();
+        std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
+        _getch(); // waits for a single character input
         return EXIT_FAILURE;
     }
     catch (const std::exception& e)
     {
-        CRT_DUMP_MEMORY_LEAKS;
-
-        std::cerr << "Error (wWinMain) caught std::exception: " << e.what() << std::endl;
-        OutputDebugStringA(e.what());
-        MessageBoxExA(nullptr, e.what(), "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+        std::cerr << "Caught Error (std::exception): " << e.what() << "\n";
+        std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
+        _getch(); // waits for a single character input
         return EXIT_FAILURE;
     }
+    catch (const char* msg)
+    {
+        std::cerr << "Caught Error (C-string exception): " << msg << "\n";
+        std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
+        _getch(); // waits for a single character input
+        return EXIT_FAILURE;
+    }
+    catch (...)
+    {
+        std::cerr << "Caught Error (unknown exception)\n";
+        std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
+        _getch(); // waits for a single character input
+        return EXIT_FAILURE;
+    }
+
+    window.reset();
+    window = nullptr;
+
+    std::wcout << L"\nProgram exit success. Press any key to continue..." << std::endl;
+    _getch(); // waits for a single character input
+
+    console.reset();
+    console = nullptr;
+
+    return 0;
 }

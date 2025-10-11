@@ -1,7 +1,7 @@
 /*!
 win32\Console\Console.hpp
 Created: October 5, 2025
-Updated: October 7, 2025
+Updated: October 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console header file.
@@ -44,7 +44,7 @@ private:
 	static constexpr const LONG CONSOLE_WIDTH = 800;
 	static constexpr const LONG CONSOLE_HEIGHT = 600;
 
-	void RedirectStdIO() const;
+	bool m_cleaned;
 	void Cleanup();
 
 public:
@@ -75,6 +75,8 @@ public:
 	ConsoleWriteRegion CreateWriteRegion(std::wstring const& text, COORD writePos, std::optional<WORD> attribs = std::nullopt) const;
 	void WriteLineChunks(const std::wstring& line, COORD& cursorPos, WORD attribs, SHORT screenBufferWidth) const;
 	void WriteText(std::wstring const& text, std::optional<WORD> attribs = std::nullopt) const;
+
+	void RedirectStdIO() const;
 };
 
 #endif

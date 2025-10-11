@@ -1,7 +1,7 @@
 /*!
 win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: October 7, 2025
+Updated: October 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -20,7 +20,7 @@ Window::Window() :
 	m_windowName(L""),
 	m_windowClassName(L"")
 {
-	std::wcout << L"CONSTRUCTOR: Window()" << L'\n';
+	std::wcout << L"CONSTRUCTOR: Window()\n";
 	Window::InitWindow();
 }
 
@@ -42,6 +42,8 @@ Window::Window(HINSTANCE hInstance) :
 Window::~Window()
 {
 	std::wcout << L"DESTRUCTOR: ~Window()" << L'\n';
+	OutputDebugStringW(L"DESTRUCTOR: ~Window()\n");
+	Window::Cleanup();
 }
 
 /* FUNCTION DEFINITIONS */
@@ -436,13 +438,11 @@ void Window::ProcessorInfo()
 	buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(size);
 	if (buffer == NULL)
 	{
-		Window::LogLastError(L"Memory allocation failed");
 		throw std::runtime_error("Failed to allocate memory!");
 	}
 
 	if (!GetLogicalProcessorInformation(buffer, &size))
 	{
-		Window::LogLastError(L"GetLogicalProcessorInformation failed");
 		free(buffer);
 		throw std::runtime_error("Failed to call GetLogicalProcessorInformation!");
 	}
@@ -460,48 +460,26 @@ void Window::ProcessorInfo()
 
 void Window::Cleanup()
 {
-	DestroyAcceleratorTable(m_hAccelTable);
-	m_hAccelTable = nullptr;
+	if (m_cleaned) return;
 
-	DestroyWindow(m_hWindow);
-	m_hWindow = nullptr;
+	if (m_hAccelTable && m_hAccelTable != nullptr)
+	{
+		DestroyAcceleratorTable(m_hAccelTable);
+		m_hAccelTable = nullptr;
+	}
+
+	if (m_hWindow && m_hWindow != nullptr)
+	{
+		DestroyWindow(m_hWindow);
+		m_hWindow = nullptr;
+	}
 
 	if (!UnregisterClassW(m_windowClassName, m_hInstance))
 	{
-		throw std::runtime_error("Failed to unregister the window class!");
-	}
-}
-
-void Window::LogLastError(const wchar_t* desc)
-{
-	DWORD errorCode = GetLastError();
-
-	if (errorCode == 0)
-	{
-		std::wcout << desc << L": No error." << std::endl;
-		return;
+		DWORD err = GetLastError();
+		OutputDebugStringW(L"UnregisterClassW failed!\n");
+		std::wcerr << L"UnregisterClassW failed (error " << err << L")\n";
 	}
 
-	wchar_t* errorMsg = nullptr;
-
-	FormatMessageW
-	(
-		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-		nullptr,
-		errorCode,
-		0,
-		reinterpret_cast<LPWSTR>(&errorMsg),
-		0,
-		nullptr
-	);
-
-	if (errorMsg)
-	{
-		std::wcout << desc << L" failed with error code " << errorCode << L": " << errorMsg << std::endl;
-		LocalFree(errorMsg);
-	}
-	else
-	{
-		std::wcout << desc << L" failed with unknown error code: " << errorCode << std::endl;
-	}
+	m_cleaned = true;
 }

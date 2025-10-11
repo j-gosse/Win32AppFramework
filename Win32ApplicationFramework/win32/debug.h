@@ -1,7 +1,7 @@
 /*!
 win32\debug.h
 Created: October 5, 2025
-Updated: October 9, 2025
+Updated: October 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Debug header file : win32 debug file, currently focuses on memory leak checking.
@@ -18,7 +18,9 @@ https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/crtsetdbgflag?
 #if defined(_DEBUG) && defined(_WIN32)
 
 #define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
 #include <crtdbg.h>
+
 #define DEBUG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
 #define new DEBUG_NEW
 
@@ -52,6 +54,7 @@ https://learn.microsoft.com/en-us/cpp/c-runtime-library/reference/crtsetdbgflag?
     do {\
         if (!_CrtDumpMemoryLeaks())\
         {\
+            std::wcerr << L"No memory leaks detected.\n";\
             OutputDebugStringW(L"No memory leaks detected.\n");\
         }\
 } while (0)

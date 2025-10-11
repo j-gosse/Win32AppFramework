@@ -1,7 +1,7 @@
 /*!
 win32\Console\Console.cpp
 Created: October 5, 2025
-Updated: October 9, 2025
+Updated: October 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console source file.
@@ -63,6 +63,7 @@ Console::Console(HINSTANCE hInstance) :
 
 Console::~Console()
 {
+    std::wcout << L"DESTRUCTOR: ~Console()\n";
     OutputDebugStringW(L"DESTRUCTOR: ~Console()\n");
     Console::Cleanup();
 }
@@ -353,6 +354,8 @@ void Console::RedirectStdIO() const
 
 void Console::Cleanup()
 {
+    if (m_cleaned) return;
+
     if (m_hConsoleOutput && m_hConsoleOutput != INVALID_HANDLE_VALUE)
     {
         CloseHandle(m_hConsoleOutput);
@@ -372,4 +375,6 @@ void Console::Cleanup()
     }
 
     if (m_consoleAllocated) FreeConsole();
+
+    m_cleaned = true;
 }

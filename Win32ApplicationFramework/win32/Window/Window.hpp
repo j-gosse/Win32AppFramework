@@ -1,7 +1,7 @@
 /*!
 win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: October 7, 2025
+Updated: October 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -40,6 +40,8 @@ private:
 	const ULONGLONG m_startTime = GetTickCount64();
 	ULONGLONG m_currentTime;
 	ULONGLONG m_elapsedTime;
+
+	bool m_cleaned = false;
 
 	/**
 	* @brief	Handle messages sent to the window on a switch-case basis.
@@ -127,12 +129,6 @@ private:
 	* @brief	Destroy the window and unregister window class.
 	*/
 	void Cleanup();
-
-	/**
-	* @brief	Log the last error that occurred to the console.
-	* @param	const wchar_t* desc : Description of where the error originated from.
-	*/
-	void LogLastError(const wchar_t* desc);
 
 public:
 	/**
