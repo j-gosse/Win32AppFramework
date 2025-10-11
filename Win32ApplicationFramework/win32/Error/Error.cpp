@@ -1,7 +1,7 @@
 /*!
 win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: October 10, 2025
+Updated: October 11, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -13,6 +13,7 @@ Error source file.
 
 Error::Error(const char* file, const char* func, int line) :
 	m_errorCode(GetLastError()),
+	m_errorLevel(AssignErrorLevel()),
 	m_file(std::move(file)),
 	m_func(std::move(func)),
 	m_line(line)
@@ -23,6 +24,7 @@ Error::Error(const char* file, const char* func, int line) :
 
 Error::Error(const char* file, const char* func, int line, const std::wstring& context) :
 	m_errorCode(GetLastError()),
+	m_errorLevel(AssignErrorLevel()),
 	m_file(std::move(file)),
 	m_func(std::move(func)),
 	m_line(line),
@@ -33,7 +35,6 @@ Error::Error(const char* file, const char* func, int line, const std::wstring& c
 }
 
 Error::Error(const char* file, const char* func, int line, std::exception_ptr cause) :
-	m_errorCode(GetLastError()),
 	m_file(std::move(file)),
 	m_func(std::move(func)),
 	m_line(line),
@@ -50,7 +51,8 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 	}
 	catch (const Error& nestedError)
 	{
-		m_errorCode = nestedError.GetCode();
+		m_errorCode = nestedError.GetErrorCode();
+		m_errorLevel = nestedError.AssignErrorLevel();
 		if (m_context.empty()) m_context = nestedError.GetContext();
 		else if (!nestedError.GetContext().empty()) m_context = nestedError.GetContext() + L" | " + m_context;
 
@@ -63,11 +65,11 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 	}
 
 	m_errorCode = GetLastError();
+	m_errorLevel = AssignErrorLevel();
 	Error::BuildWhat();
 }
 
 Error::Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context) :
-	m_errorCode(GetLastError()),
 	m_file(std::move(file)),
 	m_func(std::move(func)),
 	m_line(line),
@@ -85,7 +87,8 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 	}
 	catch (const Error& nestedError)
 	{
-		m_errorCode = nestedError.GetCode();
+		m_errorCode = nestedError.GetErrorCode();
+		m_errorLevel = nestedError.AssignErrorLevel();
 		if (m_context.empty()) m_context = nestedError.GetContext();
 		else if (!nestedError.GetContext().empty()) m_context = nestedError.GetContext() + L" | " + m_context;
 
@@ -98,6 +101,7 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 	}
 
 	m_errorCode = GetLastError();
+	m_errorLevel = AssignErrorLevel();
 	Error::BuildWhat();
 }
 
@@ -139,9 +143,10 @@ std::wstring Error::FormErrorMsg(DWORD msgId) const
 std::wstring Error::Msg() const
 {
 	std::wostringstream woss;
-	woss << L"Code: " << GetCode() << L'\n';
-	if (!GetContext().empty()) woss << L"Context: " << GetContext() << L"\n";
-	woss << L"Msg: " << FormErrorMsg(GetCode()) << L'\n';
+	woss << L"Code: " << GetErrorCode() << L'\n';
+	woss << L"Level: " << ErrorLevelToString(GetErrorLevel()) << L'\n';
+	if (!GetContext().empty()) woss << L"Context: " << GetContext() << L'\n';
+	woss << L"Error: " << FormErrorMsg(GetErrorCode()) << L'\n';
 	woss << L"File: " << GetFile() << L'\n';
 	woss << L"Func: " << GetFunc() << L'\n';
 	woss << L"Line: " << GetLine() << L'\n';
@@ -163,7 +168,7 @@ void Error::BuildWhat()
 
 int Error::MsgBox() const
 {
-	return MessageBoxExW(nullptr, Msg().c_str(), L"Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+	return MessageBoxExW(nullptr, Msg().c_str(), ErrorLevelToString(GetErrorLevel()), MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
 }
 
 const char* Error::what() const noexcept
@@ -196,5 +201,60 @@ void Error::PrintCauseChain() const
 		{
 			std::cerr << "Caused by unknown exception.\n";
 		}
+	}
+}
+
+ErrorLevel Error::AssignErrorLevel() const
+{
+	HRESULT errorCode = Error::GetErrorCode();
+
+	switch (errorCode)
+	{
+	case S_OK:
+		return ErrorLevel::Info;
+
+	case S_FALSE:
+	case ERROR_FILE_NOT_FOUND:
+	case ERROR_PATH_NOT_FOUND:
+		return ErrorLevel::Warning;
+
+	case ERROR_INVALID_PARAMETER:
+	case ERROR_BAD_FORMAT:
+	case ERROR_NOT_SUPPORTED:
+	case ERROR_ALREADY_EXISTS:
+	case ERROR_INVALID_DATA:
+	case ERROR_GEN_FAILURE:
+	case E_FAIL: // Generic COM failure
+		return ErrorLevel::General;
+
+	case ERROR_ACCESS_DENIED:
+	case ERROR_INVALID_HANDLE:
+		return ErrorLevel::Critical;
+
+	case ERROR_OUTOFMEMORY:
+	case E_OUTOFMEMORY:
+		return ErrorLevel::Fatal;
+
+	default:
+		return ErrorLevel::Unknown;
+	}
+}
+
+const wchar_t* Error::ErrorLevelToString(ErrorLevel level) const
+{
+	switch (level)
+	{
+	case ErrorLevel::Info:
+		return L"Info Error!";
+	case ErrorLevel::Warning:
+		return L"Warning Error!";
+	case ErrorLevel::General:
+		return L"General Error!";
+	case ErrorLevel::Critical:
+		return L"Critical Error!";
+	case ErrorLevel::Fatal:
+		return L"Fatal Error!";
+	default:
+		return L"Unknown Error!";
 	}
 }

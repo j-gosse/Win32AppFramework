@@ -1,12 +1,12 @@
 /*! \project    Win32ApplicationFramework
     \file       win32\win32_platform.cpp
-    \version    PRE-ALPHA 1.3
+    \version    PRE-ALPHA 1.4
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality
                 for window creation, message loops, error handling, and optional console 
                 output. Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
     \date       October 5, 2025
-    \updated    October 10, 2025
+    \updated    October 11, 2025
 
     \MSVC       /std:c++20
     \GNUC       -m64 -std=c++20
@@ -78,6 +78,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
             THROW_ERROR();
             THROW_ERROR_CTX(L"Throwing a test error.");
             */
+            SetLastError(ERROR_ACCESS_DENIED);
+            THROW_ERROR_CTX(L"Throwing a test error.");
 
             // main loop
             UINT wMsgFilterMin = 0;

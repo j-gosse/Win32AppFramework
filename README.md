@@ -1,7 +1,7 @@
 # Win32 Application Framework
-VERSION:&emsp;&emsp;&emsp;PRE-ALPHA 1.3  
+VERSION:&emsp;&emsp;&emsp;PRE-ALPHA 1.4  
 DATE CREATED:&ensp;October 5, 2025  
-DATE UPDATED:&nbsp;October 10, 2025  
+DATE UPDATED:&nbsp;October 11, 2025  
 AUTHOR:&emsp;&emsp;&emsp;&nbsp;Jacob Gosse  
 
 A lightweight C++ framework that encapsulates core Win32 API functionality for 

@@ -1,7 +1,7 @@
 /*!
 win32\Error\Error.hpp
 Created: October 9, 2025
-Updated: October 10, 2025
+Updated: October 11, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error header file.
@@ -9,6 +9,7 @@ Error header file.
 
 #include <win32/framework.h>
 #include <win32/debug.h>
+#include "ErrorLevel.hpp"
 
 #pragma once
 
@@ -32,6 +33,7 @@ class Error : public std::exception
 {
 private:
 	DWORD m_errorCode;
+	ErrorLevel m_errorLevel;
 	const char* m_file;
 	const char* m_func;
 	int m_line;
@@ -54,7 +56,11 @@ public:
 	const char* what() const noexcept override;
 	void PrintCauseChain() const;
 
-	DWORD GetCode() const { return m_errorCode; }
+	ErrorLevel AssignErrorLevel() const;
+	const wchar_t* ErrorLevelToString(ErrorLevel level) const;
+
+	DWORD GetErrorCode() const { return m_errorCode; }
+	ErrorLevel GetErrorLevel() const { return m_errorLevel; }
 	const char* GetFile() const { return m_file; }
 	const char* GetFunc() const { return m_func; }
 	int GetLine() const { return m_line; }
