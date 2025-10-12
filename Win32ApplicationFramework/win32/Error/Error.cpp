@@ -123,7 +123,6 @@ std::wstring Error::FormErrorMsg(DWORD msgId) const
 					| FORMAT_MESSAGE_MAX_WIDTH_MASK;
 
 	LPWSTR msgBuffer{};
-
 	DWORD charCount = FormatMessageW
 	(
 		dwFlags,
@@ -134,10 +133,19 @@ std::wstring Error::FormErrorMsg(DWORD msgId) const
 		0,
 		NULL
 	);
-
 	std::wstring msg = (charCount == 0 || msgBuffer == nullptr) ? L"unknown error message" : msgBuffer;
 	LocalFree(msgBuffer);
 	return msg;
+}
+
+void Error::Log() const
+{
+	std::wcout << L"LOGGED ERROR:\n" << Error::Msg() << L'\n';
+	std::wstring causeChain = GetCauseChain();
+	if (!causeChain.empty())
+	{
+		std::wcout << L"CAUSE CHAIN:\n" << std::wstring(causeChain.begin(), causeChain.end());
+	}
 }
 
 std::wstring Error::Msg() const
@@ -147,8 +155,8 @@ std::wstring Error::Msg() const
 	woss << L"Level: " << ErrorLevelToString(GetErrorLevel()) << L'\n';
 	if (!GetContext().empty()) woss << L"Context: " << GetContext() << L'\n';
 	woss << L"Error: " << FormErrorMsg(GetErrorCode()) << L'\n';
-	woss << L"File: " << GetFile() << L'\n';
-	woss << L"Func: " << GetFunc() << L'\n';
+	woss << L"File: " << Error::WideChar(GetFile()) << L'\n';
+	woss << L"Func: " << Error::WideChar(GetFunc()) << L'\n';
 	woss << L"Line: " << GetLine() << L'\n';
 	return woss.str();
 }
@@ -163,45 +171,6 @@ void Error::BuildWhat()
 		WideCharToMultiByte(CP_UTF8, 0, wideMsg.c_str(), -1, m_what.data(), size, nullptr, nullptr);
 	}
 	else m_what = "Failed to convert wide string to UTF-8";
-
-}
-
-int Error::MsgBox() const
-{
-	return MessageBoxExW(nullptr, Msg().c_str(), ErrorLevelToString(GetErrorLevel()), MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
-}
-
-const char* Error::what() const noexcept
-{
-	return m_what.c_str();
-}
-
-void Error::PrintCauseChain() const
-{
-	if (GetCause())
-	{
-		try
-		{
-			std::rethrow_exception(GetCause());
-		}
-		catch (const Error& nested)
-		{
-			std::cerr << "Caused by Error class: " << (nested.what() ? nested.what() : "NULL") << "\n";
-			nested.PrintCauseChain();
-		}
-		catch (const std::exception& nestedStd)
-		{
-			std::cerr << "Caused by std::exception: " << (nestedStd.what() ? nestedStd.what() : "NULL") << "\n";
-		}
-		catch (const char* nestedMsg)
-		{
-			std::cerr << "Caused by C-string exception: " << (nestedMsg ? nestedMsg : "NULL") << "\n";
-		}
-		catch (...)
-		{
-			std::cerr << "Caused by unknown exception.\n";
-		}
-	}
 }
 
 ErrorLevel Error::AssignErrorLevel() const
@@ -210,27 +179,54 @@ ErrorLevel Error::AssignErrorLevel() const
 
 	switch (errorCode)
 	{
-	case S_OK:
+	case S_OK:						// Operation was successful
+	case S_FALSE:					// Operation was successful, but condition was false
+	case ERROR_OPERATION_ABORTED:	// Operation was canceled by user/request
+	case ERROR_ALREADY_EXISTS:
 		return ErrorLevel::Info;
 
-	case S_FALSE:
 	case ERROR_FILE_NOT_FOUND:
 	case ERROR_PATH_NOT_FOUND:
+	case ERROR_INSUFFICIENT_BUFFER:
+	case ERROR_MORE_DATA:
+	case ERROR_PARTIAL_COPY:
+	case ERROR_RETRY:
 		return ErrorLevel::Warning;
 
+	case ERROR_INVALID_NAME:
+	case ERROR_INVALID_DRIVE:
+	case ERROR_BAD_NETPATH:
+	case ERROR_DIR_NOT_EMPTY:
+	case ERROR_NO_MORE_FILES:
+	case ERROR_NOT_READY:			// Device not ready
+	case ERROR_SHARING_VIOLATION:
+	case ERROR_BUSY:
+	case ERROR_DEV_NOT_EXIST:
+	case ERROR_BAD_DEVICE:
+	case ERROR_DLL_INIT_FAILED:
 	case ERROR_INVALID_PARAMETER:
 	case ERROR_BAD_FORMAT:
 	case ERROR_NOT_SUPPORTED:
-	case ERROR_ALREADY_EXISTS:
 	case ERROR_INVALID_DATA:
 	case ERROR_GEN_FAILURE:
-	case E_FAIL: // Generic COM failure
+	case E_FAIL:					// Generic COM failure
 		return ErrorLevel::General;
 
+	case ERROR_LOGON_FAILURE:
+	case ERROR_NO_LOGON_SERVERS:
+	case ERROR_NETWORK_ACCESS_DENIED:
+	case ERROR_CANNOT_MAKE:
+	case ERROR_FILE_EXISTS:
+	case ERROR_LOCK_VIOLATION:
 	case ERROR_ACCESS_DENIED:
 	case ERROR_INVALID_HANDLE:
 		return ErrorLevel::Critical;
 
+	case ERROR_STACK_OVERFLOW:
+	case ERROR_NOT_ENOUGH_QUOTA:
+	case ERROR_DISK_FULL:
+	case ERROR_TOO_MANY_OPEN_FILES:
+	case ERROR_HANDLE_DISK_FULL:
 	case ERROR_OUTOFMEMORY:
 	case E_OUTOFMEMORY:
 		return ErrorLevel::Fatal;
@@ -257,4 +253,60 @@ const wchar_t* Error::ErrorLevelToString(ErrorLevel level) const
 	default:
 		return L"Unknown Error!";
 	}
+}
+
+int Error::MsgBox() const
+{
+	return MessageBoxExW(nullptr, Msg().c_str(), ErrorLevelToString(GetErrorLevel()), MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+}
+
+const char* Error::what() const noexcept
+{
+	return m_what.c_str();
+}
+
+std::wstring Error::WideChar(const char* string) const
+{
+	if (!string) return L"NULL";
+	int len = MultiByteToWideChar(CP_UTF8, 0, string, -1, nullptr, 0);
+
+	if (len <= 0) return L"conversion failed";
+	std::wstring wstr(len, L'\0');
+	MultiByteToWideChar(CP_UTF8, 0, string, -1, &wstr[0], len);
+	wstr.resize(wcslen(wstr.c_str()));
+	return wstr;
+}
+
+std::wstring Error::GetCauseChain() const
+{
+	std::wostringstream woss;
+	if (GetCause())
+	{
+		try
+		{
+			std::rethrow_exception(GetCause());
+		}
+		catch (const Error& nestedError)
+		{
+			woss << L"Caused by Error class: " << Error::WideChar(nestedError.what()) << L'\n';
+			woss << nestedError.GetCauseChain(); // recursive call
+		}
+		catch (const std::exception& nestedException)
+		{
+			woss << L"Caused by std::exception: " << Error::WideChar(nestedException.what()) << L'\n';
+		}
+		catch (const char* nestedMsg)
+		{
+			woss << L"Caused by C-string exception: " << Error::WideChar(nestedMsg) << L'\n';
+		}
+		catch (const wchar_t* nestedWideMsg)
+		{
+			woss << L"Caused by wide string exception: " << (nestedWideMsg ? nestedWideMsg : L"NULL") << L'\n';
+		}
+		catch (...)
+		{
+			woss << L"Caused by unknown exception.\n";
+		}
+	}
+	return woss.str();
 }

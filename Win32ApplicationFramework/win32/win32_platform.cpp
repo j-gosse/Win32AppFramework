@@ -1,11 +1,11 @@
 /*! \project    Win32ApplicationFramework
     \file       win32\win32_platform.cpp
-    \version    PRE-ALPHA 1.4
+    \version    PRE-ALPHA 1.5
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality
                 for window creation, message loops, error handling, and optional console 
                 output. Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
-    \date       October 5, 2025
+    \created    October 5, 2025
     \updated    October 11, 2025
 
     \MSVC       /std:c++20
@@ -26,9 +26,20 @@
     limitations under the License.
 */
 
-#include <win32/Error/Error.hpp>
+#include <win32/Error/errormacros.hpp>
 #include <win32/Console/Console.hpp>
 #include <win32/Window/Window.hpp>
+
+static std::wstring WideCharTemp(const char* string)
+{
+    if (!string) return L"NULL";
+    int len = MultiByteToWideChar(CP_UTF8, 0, string, -1, nullptr, 0);
+    if (len <= 0) return L"conversion failed";
+    std::wstring wstr(len, L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, string, -1, &wstr[0], len);
+    wstr.resize(wcslen(wstr.c_str()));
+    return wstr;
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -71,15 +82,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
                 FILE_ATTRIBUTE_NORMAL,
                 nullptr
             );
+            LOG_IF_ERROR(hFile != INVALID_HANDLE_VALUE);
+            LOG_IF_ERROR_CTX(hFile != INVALID_HANDLE_VALUE, L"Logging a test if error.");
             THROW_IF_ERROR(hFile != INVALID_HANDLE_VALUE);
             THROW_IF_ERROR_CTX(hFile != INVALID_HANDLE_VALUE, L"Throwing a test error.");
 
             SetLastError(ERROR_ACCESS_DENIED);
             THROW_ERROR();
             THROW_ERROR_CTX(L"Throwing a test error.");
-            */
+
             SetLastError(ERROR_ACCESS_DENIED);
-            THROW_ERROR_CTX(L"Throwing a test error.");
+            SetLastError(ERROR_INVALID_NAME);
+            LOG_ERROR();
+            LOG_ERROR_CTX(L"Throwing a test error.");
+            */
 
             // main loop
             UINT wMsgFilterMin = 0;
@@ -104,51 +120,55 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         catch (const Error& e)
         {
             e.MsgBox();
-            //RETHROW_ERROR();
             RETHROW_ERROR_CTX(L"This is the inner catch context.");
         }
         catch (const std::exception& e)
         {
-            MessageBoxExA(nullptr, e.what(), "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            MessageBoxExA(nullptr, e.what(), "Standard Exception!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
             RETHROW_ERROR();
         }
         catch (const char* msg)
         {
-            MessageBoxExA(nullptr, msg, "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            MessageBoxExA(nullptr, msg, "C-string Exception!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            RETHROW_ERROR();
+        }
+        catch (const wchar_t* wideMsg)
+        {
+            MessageBoxExW(nullptr, wideMsg, L"Wide String Exception!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
             RETHROW_ERROR();
         }
         catch (...)
         {
             const char* msg = "Unknown exception.";
-            MessageBoxExA(nullptr, msg, "Fatal Error!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+            MessageBoxExA(nullptr, msg, "Unknown Exception!", MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
             RETHROW_ERROR();
         }
     }
     catch (const Error& e)
     {
-        std::cerr << "Caught Error (Error class): " << e.what() << "\n";
-        e.PrintCauseChain();
+        std::wcerr << L"Caught Error (Error class): " << e.WideChar(e.what()) << L'\n';
+        std::wcerr << e.GetCauseChain();
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch(); // waits for a single character input
         return EXIT_FAILURE;
     }
     catch (const std::exception& e)
     {
-        std::cerr << "Caught Error (std::exception): " << e.what() << "\n";
+        std::wcerr << L"Caught Error (std::exception): " << WideCharTemp(e.what()) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch(); // waits for a single character input
         return EXIT_FAILURE;
     }
     catch (const char* msg)
     {
-        std::cerr << "Caught Error (C-string exception): " << msg << "\n";
+        std::wcerr << L"Caught Error (C-string exception): " << WideCharTemp(msg) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch(); // waits for a single character input
         return EXIT_FAILURE;
     }
     catch (...)
     {
-        std::cerr << "Caught Error (unknown exception)\n";
+        std::wcerr << L"Caught Error (unknown exception)\n";
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch(); // waits for a single character input
         return EXIT_FAILURE;

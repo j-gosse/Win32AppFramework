@@ -80,6 +80,9 @@
     <ClInclude Include="win32\Error\ErrorLevel.hpp">
       <Filter>Header Files\win32\Error</Filter>
     </ClInclude>
+    <ClInclude Include="win32\Error\errormacros.hpp">
+      <Filter>Header Files\win32\Error</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="res\resource_script.rc">

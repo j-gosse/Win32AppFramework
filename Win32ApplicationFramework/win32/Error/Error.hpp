@@ -16,19 +16,6 @@ Error header file.
 #ifndef ERROR_HPP_
 #define ERROR_HPP_
 
-#define THROW_ERROR() \
-	do { throw Error(__FILE__, __func__, __LINE__); } while(0)
-#define THROW_ERROR_CTX(context) \
-	do { throw Error(__FILE__, __func__, __LINE__, std::wstring(context)); } while(0)
-#define THROW_IF_ERROR(result) \
-	do { if (!(result)) throw Error(__FILE__, __func__, __LINE__); } while(0)
-#define THROW_IF_ERROR_CTX(result, context) \
-	do { if (!(result)) throw Error(__FILE__, __func__, __LINE__, std::wstring(context)); } while(0)
-#define RETHROW_ERROR() \
-	do { throw Error(__FILE__, __func__, __LINE__, std::current_exception()); } while(0)
-#define RETHROW_ERROR_CTX(context) \
-	do { throw Error(__FILE__, __func__, __LINE__, std::current_exception(), std::wstring(context)); } while(0)
-
 class Error : public std::exception
 {
 private:
@@ -44,6 +31,8 @@ private:
 	std::wstring FormErrorMsg(DWORD msgId) const;
 	std::wstring Msg() const;
 	void BuildWhat();
+	ErrorLevel AssignErrorLevel() const;
+	const wchar_t* ErrorLevelToString(ErrorLevel level) const;
 
 public:
 	Error(const char* file, const char* func, int line);
@@ -52,12 +41,11 @@ public:
 	Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context);
 	virtual ~Error();
 
+	void Log() const;
 	int MsgBox() const;
 	const char* what() const noexcept override;
-	void PrintCauseChain() const;
-
-	ErrorLevel AssignErrorLevel() const;
-	const wchar_t* ErrorLevelToString(ErrorLevel level) const;
+	std::wstring WideChar(const char* str) const;
+	std::wstring GetCauseChain() const;
 
 	DWORD GetErrorCode() const { return m_errorCode; }
 	ErrorLevel GetErrorLevel() const { return m_errorLevel; }
