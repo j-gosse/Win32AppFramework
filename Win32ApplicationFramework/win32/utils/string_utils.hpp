@@ -1,49 +1,64 @@
 /*!
-win32\win32_utils.hpp
+win32\utils\string_utils.hpp
 Created: October 12, 2025
 Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
-Win32 Utilities header file.
+String Utilities header file.
 */
 
 #pragma once
 
-#ifndef WIN32_UTILS_HPP_
-#define WIN32_UTILS_HPP_
+#ifndef STRING_UTILS_HPP_
+#define STRING_UTILS_HPP_
 
 #include <windows.h>
+#include <string_view>
 #include <string>
 
+#pragma region Wide Character Conversion
+inline std::wstring ToWide(std::string_view string)
+{
+    if (string.empty()) return L"NULL";
+    const int wideLength = MultiByteToWideChar(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), nullptr, 0);
+    if (wideLength <= 0) return L"conversion to utf16 char failed";
+    std::wstring wideString(static_cast<std::size_t>(wideLength), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, string.data(), static_cast<int>(string.size()), wideString.data(), wideLength);
+    return wideString;
+}
 inline std::wstring ToWide(const char* string)
 {
-	if (!string) return L"NULL";
-	const int wideLength = MultiByteToWideChar(CP_UTF8, 0, string, -1, nullptr, 0);
-	if (wideLength <= 0) return L"conversion failed";
-	std::wstring wideString(static_cast<std::size_t>(wideLength - 1), L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, string, -1, wideString.data(), wideLength);
-	return wideString;
+    return ToWide(std::string_view(string));
 }
 inline std::wstring ToWide(const std::string& string)
 {
-	return ToWide(string.c_str());
+    return ToWide(std::string_view(string));
 }
+#pragma endregion
 
+#pragma region Narrow Character Conversion
+inline std::string ToNarrow(std::wstring_view wideString)
+{
+    if (wideString.empty()) return "NULL";
+    const int narrowLength = WideCharToMultiByte(CP_UTF8, 0, wideString.data(), static_cast<int>(wideString.size()), nullptr, 0, nullptr, nullptr);
+    if (narrowLength <= 0) return "conversion to utf8 char failed";
+    std::string narrowString(static_cast<std::size_t>(narrowLength), '\0');
+    WideCharToMultiByte(CP_UTF8, 0, wideString.data(), static_cast<int>(wideString.size()), narrowString.data(), narrowLength, nullptr, nullptr);
+    return narrowString;
+}
 inline std::string ToNarrow(const wchar_t* wideString)
 {
-	if (!wideString) return "NULL";
-	const int utf8Length = WideCharToMultiByte(CP_UTF8, 0, wideString, -1, nullptr, 0, nullptr, nullptr);
-	if (utf8Length <= 0) return "conversion failed";
-	std::string utf8String(static_cast<std::size_t>(utf8Length - 1), '\0');
-	WideCharToMultiByte(CP_UTF8, 0, wideString, -1, utf8String.data(), utf8Length, nullptr, nullptr);
-	return utf8String;
+    return ToNarrow(std::wstring_view(wideString));
 }
 inline std::string ToNarrow(const std::wstring& wideString)
 {
-	return ToNarrow(wideString.c_str());
+    return ToNarrow(std::wstring_view(wideString));
 }
+#pragma endregion
 
-inline std::wstring FormatSysMsg(DWORD msgId) {
+#pragma region Format System Messages
+inline std::wstring FormatSysMessageW(DWORD msgId)
+{
     const DWORD dwFlags = 
         FORMAT_MESSAGE_ALLOCATE_BUFFER
         | FORMAT_MESSAGE_FROM_SYSTEM
@@ -95,11 +110,23 @@ inline std::wstring FormatSysMsg(DWORD msgId) {
         );
     }
 
-    if (charCount == 0 || rawMessage == nullptr) return L"Unknown error message";
+    if (charCount == 0 || rawMessage == nullptr) return L"Unknown system message!";
 
-    std::wstring result(rawMessage, charCount);
+    std::wstring sysMsg(rawMessage, charCount);
     LocalFree(rawMessage);
-    return result;
+
+    // remove trailing \r\n
+    while (!sysMsg.empty() && (sysMsg.back() == L'\r' || sysMsg.back() == L'\n'))
+    {
+        sysMsg.pop_back();
+    }
+
+    return sysMsg;
 }
+inline std::string FormatSysMessageA(DWORD msgId)
+{
+    return ToNarrow(FormatSysMessageW(msgId));
+}
+#pragma endregion
 
 #endif

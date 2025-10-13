@@ -1,7 +1,7 @@
 /*!
 win32\Console\Console.cpp
 Created: October 5, 2025
-Updated: October 10, 2025
+Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console source file.
@@ -12,11 +12,11 @@ Console source file.
 /* CONSTRUCTORS */
 
 Console::Console() :
-    m_hInstance(GetModuleHandleW(nullptr))
+    hInstance_(GetModuleHandleW(nullptr))
 {
     OutputDebugStringW(L"CONSTRUCTOR: Console()\n");
 
-    if (!m_consoleAllocated)
+    if (!consoleAllocated_)
     {
         OutputDebugStringW(L"Failed to allocate console!");
         OutputDebugStringW(L"Attempting to attach console from parent process...");
@@ -26,7 +26,7 @@ Console::Console() :
         }
     }
 
-    if (m_hConsoleWindow == nullptr)
+    if (hConsoleWindow_ == nullptr)
     {
         throw std::runtime_error("Failed to retrieve the console window!");
     }
@@ -36,11 +36,11 @@ Console::Console() :
 }
 
 Console::Console(HINSTANCE hInstance) :
-    m_hInstance(hInstance)
+    hInstance_(hInstance)
 {
     OutputDebugStringW(L"CONSTRUCTOR: Console(HINSTANCE hInstance)\n");
 
-    if (!m_consoleAllocated)
+    if (!consoleAllocated_)
     {
         OutputDebugStringW(L"Failed to allocate console!");
         OutputDebugStringW(L"Attempting to attach console from parent process...");
@@ -50,7 +50,7 @@ Console::Console(HINSTANCE hInstance) :
         }
     }
 
-    if (m_hConsoleWindow == nullptr)
+    if (hConsoleWindow_ == nullptr)
     {
         throw std::runtime_error("Failed to retrieve the console window!");
     }
@@ -72,7 +72,7 @@ Console::~Console()
 
 void Console::WriteOutput(std::span<CHAR_INFO> const& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const
 {
-    if (!WriteConsoleOutputW(m_hConsoleOutput, buffer.data(), bufferSize, bufferCoord, &writeRegion))
+    if (!WriteConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &writeRegion))
     {
         throw std::runtime_error("WriteConsoleOutputW failed.");
     }
@@ -83,7 +83,7 @@ void Console::ReadOutput(std::vector<CHAR_INFO>& buffer, COORD bufferSize, COORD
     std::size_t newBufferSize = static_cast<std::size_t>(bufferSize.X) * bufferSize.Y;
     if (buffer.size() < newBufferSize) buffer.resize(newBufferSize);
 
-    if (!ReadConsoleOutputW(m_hConsoleOutput, buffer.data(), bufferSize, bufferCoord, &readRegion))
+    if (!ReadConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &readRegion))
     {
         throw std::runtime_error("ReadConsoleOutputW failed.");
     }
@@ -96,7 +96,7 @@ std::uint32_t Console::ReadInput(std::vector<INPUT_RECORD>& inputEvents, std::si
     inputEvents.resize(maxEvents);
 
     DWORD numEventsRead{};
-    if (!ReadConsoleInputW(m_hConsoleInput, inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead))
+    if (!ReadConsoleInputW(hConsoleInput_, inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead))
     {
         throw std::runtime_error("ReadConsoleInputW failed with error : " + std::to_string(GetLastError()));
     }
@@ -107,7 +107,7 @@ std::uint32_t Console::ReadInput(std::vector<INPUT_RECORD>& inputEvents, std::si
 void Console::GetScreenBufferInfoEx(CONSOLE_SCREEN_BUFFER_INFOEX& csbix) const
 {
     csbix.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
-    if (!GetConsoleScreenBufferInfoEx(m_hConsoleOutput, &csbix))
+    if (!GetConsoleScreenBufferInfoEx(hConsoleOutput_, &csbix))
     {
         throw std::runtime_error("GetConsoleScreenBufferInfo failed.");
     }
@@ -136,13 +136,13 @@ void Console::SetTitle(const wchar_t* title) const
 {
     WCHAR titleBuffer[MAX_LOADSTRING]{};
     if (title && *title) wcsncpy_s(titleBuffer, title, MAX_LOADSTRING - 1);
-    else LoadStringW(m_hInstance, IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
-    if (m_hConsoleWindow) SetConsoleTitleW(titleBuffer);
+    else LoadStringW(hInstance_, IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
+    if (hConsoleWindow_) SetConsoleTitleW(titleBuffer);
 }
 
 void Console::SetCursorPosition(COORD cursorPos) const
 {
-    if (!SetConsoleCursorPosition(m_hConsoleOutput, cursorPos))
+    if (!SetConsoleCursorPosition(hConsoleOutput_, cursorPos))
     {
         throw std::runtime_error("SetConsoleCursorPosition failed.");
     }
@@ -354,27 +354,27 @@ void Console::RedirectStdIO() const
 
 void Console::Cleanup()
 {
-    if (m_cleaned) return;
+    if (isCleaned_) return;
 
-    if (m_hConsoleOutput && m_hConsoleOutput != INVALID_HANDLE_VALUE)
+    if (hConsoleOutput_ && hConsoleOutput_ != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(m_hConsoleOutput);
-        m_hConsoleOutput = INVALID_HANDLE_VALUE;
+        CloseHandle(hConsoleOutput_);
+        hConsoleOutput_ = INVALID_HANDLE_VALUE;
     }
 
-    if (m_hConsoleInput && m_hConsoleInput != INVALID_HANDLE_VALUE)
+    if (hConsoleInput_ && hConsoleInput_ != INVALID_HANDLE_VALUE)
     {
-        CloseHandle(m_hConsoleInput);
-        m_hConsoleInput = INVALID_HANDLE_VALUE;
+        CloseHandle(hConsoleInput_);
+        hConsoleInput_ = INVALID_HANDLE_VALUE;
     }
 
-    if (m_hConsoleWindow != nullptr)
+    if (hConsoleWindow_ != nullptr)
     {
-        DestroyWindow(m_hConsoleWindow);
-        m_hConsoleWindow = nullptr;
+        DestroyWindow(hConsoleWindow_);
+        hConsoleWindow_ = nullptr;
     }
 
-    if (m_consoleAllocated) FreeConsole();
+    if (consoleAllocated_) FreeConsole();
 
-    m_cleaned = true;
+    isCleaned_ = true;
 }

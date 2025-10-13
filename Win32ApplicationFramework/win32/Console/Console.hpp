@@ -1,7 +1,7 @@
 /*!
 win32\Console\Console.hpp
 Created: October 5, 2025
-Updated: October 10, 2025
+Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console header file.
@@ -28,29 +28,30 @@ struct ConsoleWriteRegion
 class Console
 {
 private:
-	HINSTANCE m_hInstance;
+	HINSTANCE hInstance_;
 
-	bool m_consoleAllocated = AllocConsole();
-	HWND m_hConsoleWindow = GetConsoleWindow();
+	bool consoleAllocated_ = AllocConsole();
+	HWND hConsoleWindow_ = GetConsoleWindow();
 
 	const HANDLE OutputHandle() const;
 	const HANDLE InputHandle() const;
 	const HANDLE ErrorHandle() const;
-	HANDLE m_hConsoleOutput = OutputHandle();
-	HANDLE m_hConsoleInput = InputHandle();
-	HANDLE m_hConsoleError = ErrorHandle();
+	HANDLE hConsoleOutput_ = OutputHandle();
+	HANDLE hConsoleInput_ = InputHandle();
+	HANDLE hConsoleError_ = ErrorHandle();
 
 	static constexpr const size_t MAX_LOADSTRING = 100;
-	static constexpr const LONG CONSOLE_WIDTH = 800;
-	static constexpr const LONG CONSOLE_HEIGHT = 600;
 
-	bool m_cleaned;
+	bool isCleaned_;
 	void Cleanup();
 
 public:
 	Console();
 	Console(HINSTANCE hInstance);
 	virtual ~Console();
+
+	LONG CONSOLE_WIDTH = 800;
+	LONG CONSOLE_HEIGHT = 600;
 
 	void WriteOutput(std::span<CHAR_INFO> const& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const;
 	void ReadOutput(std::vector<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& readRegion) const;

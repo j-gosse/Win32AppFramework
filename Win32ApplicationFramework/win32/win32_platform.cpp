@@ -1,12 +1,12 @@
 /*! \project    Win32ApplicationFramework
     \file       win32\win32_platform.cpp
-    \version    PRE-ALPHA 1.5
+    \version    PRE-ALPHA 1.6
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality
                 for window creation, message loops, error handling, and optional console 
                 output. Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
     \created    October 5, 2025
-    \updated    October 11, 2025
+    \updated    October 13, 2025
 
     \MSVC       /std:c++20
     \GNUC       -m64 -std=c++20
@@ -26,20 +26,10 @@
     limitations under the License.
 */
 
+#include <win32/utils/string_utils.hpp>
 #include <win32/Error/errormacros.hpp>
 #include <win32/Console/Console.hpp>
 #include <win32/Window/Window.hpp>
-
-static std::wstring WideCharTemp(const char* string)
-{
-    if (!string) return L"NULL";
-    int len = MultiByteToWideChar(CP_UTF8, 0, string, -1, nullptr, 0);
-    if (len <= 0) return L"conversion failed";
-    std::wstring wstr(len, L'\0');
-    MultiByteToWideChar(CP_UTF8, 0, string, -1, &wstr[0], len);
-    wstr.resize(wcslen(wstr.c_str()));
-    return wstr;
-}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -94,7 +84,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
             SetLastError(ERROR_ACCESS_DENIED);
             SetLastError(ERROR_INVALID_NAME);
             LOG_ERROR();
-            LOG_ERROR_CTX(L"Throwing a test error.");
+            LOG_ERROR_CTX(L"Logging a test error.");
             */
 
             // main loop
@@ -146,31 +136,31 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     }
     catch (const Error& e)
     {
-        std::wcerr << L"Caught Error (Error class): " << e.WideChar(e.what()) << L'\n';
-        std::wcerr << e.GetCauseChain();
+        std::wcerr << L"Caught Error (Error class): " << e.wwhat() << L'\n';
+        std::wcerr << e.LogCauseChain();
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
-        _getch(); // waits for a single character input
+        _getch();
         return EXIT_FAILURE;
     }
     catch (const std::exception& e)
     {
-        std::wcerr << L"Caught Error (std::exception): " << WideCharTemp(e.what()) << L'\n';
+        std::wcerr << L"Caught Error (std::exception): " << ToWide(e.what()) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
-        _getch(); // waits for a single character input
+        _getch();
         return EXIT_FAILURE;
     }
     catch (const char* msg)
     {
-        std::wcerr << L"Caught Error (C-string exception): " << WideCharTemp(msg) << L'\n';
+        std::wcerr << L"Caught Error (C-string exception): " << ToWide(msg) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
-        _getch(); // waits for a single character input
+        _getch();
         return EXIT_FAILURE;
     }
     catch (...)
     {
         std::wcerr << L"Caught Error (unknown exception)\n";
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
-        _getch(); // waits for a single character input
+        _getch();
         return EXIT_FAILURE;
     }
 
@@ -178,7 +168,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     window = nullptr;
 
     std::wcout << L"\nProgram exit success. Press any key to continue..." << std::endl;
-    _getch(); // waits for a single character input
+    _getch();
 
     console.reset();
     console = nullptr;

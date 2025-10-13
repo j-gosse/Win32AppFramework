@@ -1,62 +1,59 @@
 /*!
 win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: October 11, 2025
+Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
 */
 
+#include <win32/utils/string_utils.hpp>
 #include "Error.hpp"
 
 /* CONSTRUCTORS */
 
 Error::Error(const char* file, const char* func, int line) :
-	m_errorCode(GetLastError()),
-	m_errorLevel(AssignErrorLevel()),
-	m_file(std::move(file)),
-	m_func(std::move(func)),
-	m_line(line)
+	errorCode_(GetLastError()),
+	errorLevel_(Error::AssignErrorLevel()),
+	file_(ToWide(file)),
+	func_(ToWide(func)),
+	line_(line)
 {
 	std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line)\n";
-	Error::BuildWhat();
 }
 
 Error::Error(const char* file, const char* func, int line, const std::wstring& context) :
-	m_errorCode(GetLastError()),
-	m_errorLevel(AssignErrorLevel()),
-	m_file(std::move(file)),
-	m_func(std::move(func)),
-	m_line(line),
-	m_context(context)
+	errorCode_(GetLastError()),
+	errorLevel_(Error::AssignErrorLevel()),
+	file_(ToWide(file)),
+	func_(ToWide(func)),
+	line_(line),
+	context_(context)
 {
 	std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, const std::wstring& context)\n";
-	Error::BuildWhat();
 }
 
 Error::Error(const char* file, const char* func, int line, std::exception_ptr cause) :
-	m_file(std::move(file)),
-	m_func(std::move(func)),
-	m_line(line),
-	m_cause(std::move(cause))
+	file_(ToWide(file)),
+	func_(ToWide(func)),
+	line_(line),
+	cause_(std::move(cause))
 {
 	std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, std::exception_ptr cause)\n";
 
 	try
 	{
-		if (m_cause)
+		if (cause_)
 		{
-			std::rethrow_exception(m_cause);
+			std::rethrow_exception(cause_);
 		}
 	}
 	catch (const Error& nestedError)
 	{
-		m_errorCode = nestedError.GetErrorCode();
-		m_errorLevel = nestedError.AssignErrorLevel();
-		if (m_context.empty()) m_context = nestedError.GetContext();
-		else if (!nestedError.GetContext().empty()) m_context = nestedError.GetContext() + L" | " + m_context;
-
-		Error::BuildWhat();
+		errorCode_ = nestedError.GetErrorCode();
+		errorLevel_ = nestedError.AssignErrorLevel();
+		if (context_.empty()) context_ = nestedError.GetContext();
+		else if (!nestedError.GetContext().empty()) context_ = nestedError.GetContext() + L" | " + context_;
 		return;
 	}
 	catch (...)
@@ -64,35 +61,32 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 		// fall through
 	}
 
-	m_errorCode = GetLastError();
-	m_errorLevel = AssignErrorLevel();
-	Error::BuildWhat();
+	errorCode_ = GetLastError();
+	errorLevel_ = Error::AssignErrorLevel();
 }
 
 Error::Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context) :
-	m_file(std::move(file)),
-	m_func(std::move(func)),
-	m_line(line),
-	m_cause(std::move(cause)),
-	m_context(context)
+	file_(ToWide(file)),
+	func_(ToWide(func)),
+	line_(line),
+	cause_(std::move(cause)),
+	context_(context)
 {
 	std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context)\n";
 
 	try
 	{
-		if (m_cause)
+		if (cause_)
 		{
-			std::rethrow_exception(m_cause);
+			std::rethrow_exception(cause_);
 		}
 	}
 	catch (const Error& nestedError)
 	{
-		m_errorCode = nestedError.GetErrorCode();
-		m_errorLevel = nestedError.AssignErrorLevel();
-		if (m_context.empty()) m_context = nestedError.GetContext();
-		else if (!nestedError.GetContext().empty()) m_context = nestedError.GetContext() + L" | " + m_context;
-
-		Error::BuildWhat();
+		errorCode_ = nestedError.GetErrorCode();
+		errorLevel_ = nestedError.AssignErrorLevel();
+		if (context_.empty()) context_ = nestedError.GetContext();
+		else if (!nestedError.GetContext().empty()) context_ = nestedError.GetContext() + L" | " + context_;
 		return;
 	}
 	catch (...)
@@ -100,9 +94,8 @@ Error::Error(const char* file, const char* func, int line, std::exception_ptr ca
 		// fall through
 	}
 
-	m_errorCode = GetLastError();
-	m_errorLevel = AssignErrorLevel();
-	Error::BuildWhat();
+	errorCode_ = GetLastError();
+	errorLevel_ = Error::AssignErrorLevel();
 }
 
 /* DESTRUCTOR */
@@ -115,62 +108,33 @@ Error::~Error()
 
 /* FUNCTION DEFINITIONS */
 
-std::wstring Error::FormErrorMsg(DWORD msgId) const
-{
-	DWORD dwFlags = FORMAT_MESSAGE_ALLOCATE_BUFFER 
-					| FORMAT_MESSAGE_FROM_SYSTEM
-					| FORMAT_MESSAGE_IGNORE_INSERTS
-					| FORMAT_MESSAGE_MAX_WIDTH_MASK;
-
-	LPWSTR msgBuffer{};
-	DWORD charCount = FormatMessageW
-	(
-		dwFlags,
-		NULL,
-		msgId,
-		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		reinterpret_cast<LPWSTR>(&msgBuffer),
-		0,
-		NULL
-	);
-	std::wstring msg = (charCount == 0 || msgBuffer == nullptr) ? L"unknown error message" : msgBuffer;
-	LocalFree(msgBuffer);
-	return msg;
-}
-
-void Error::Log() const
-{
-	std::wcout << L"LOGGED ERROR:\n" << Error::Msg() << L'\n';
-	std::wstring causeChain = GetCauseChain();
-	if (!causeChain.empty())
-	{
-		std::wcout << L"CAUSE CHAIN:\n" << std::wstring(causeChain.begin(), causeChain.end());
-	}
-}
-
-std::wstring Error::Msg() const
+std::wstring Error::Message() const
 {
 	std::wostringstream woss;
-	woss << L"Code: " << GetErrorCode() << L'\n';
-	woss << L"Level: " << ErrorLevelToString(GetErrorLevel()) << L'\n';
-	if (!GetContext().empty()) woss << L"Context: " << GetContext() << L'\n';
-	woss << L"Error: " << FormErrorMsg(GetErrorCode()) << L'\n';
-	woss << L"File: " << Error::WideChar(GetFile()) << L'\n';
-	woss << L"Func: " << Error::WideChar(GetFunc()) << L'\n';
-	woss << L"Line: " << GetLine() << L'\n';
+	woss << L"Code: " << Error::GetErrorCode() << L'\n';
+	woss << L"Level: " << Error::ErrorLevelToString(Error::GetErrorLevel()) << L'\n';
+	if (!Error::GetContext().empty()) woss << L"Context: " << Error::GetContext() << L'\n';
+	woss << L"Error: " << Error::BuildErrorMessage(Error::GetErrorCode()) << L'\n';
+	woss << L"File: " << Error::GetFile() << L'\n';
+	woss << L"Func: " << Error::GetFunc() << L'\n';
+	woss << L"Line: " << Error::GetLine() << L'\n';
 	return woss.str();
 }
 
-void Error::BuildWhat()
+std::wstring Error::BuildErrorMessage(DWORD errorCode) const
 {
-	std::wstring wideMsg = Msg();
-	int size = WideCharToMultiByte(CP_UTF8, 0, wideMsg.c_str(), -1, nullptr, 0, nullptr, nullptr);
-	if (size > 0)
-	{
-		m_what.resize(size);
-		WideCharToMultiByte(CP_UTF8, 0, wideMsg.c_str(), -1, m_what.data(), size, nullptr, nullptr);
-	}
-	else m_what = "Failed to convert wide string to UTF-8";
+	std::wstring errorMessage = FormatSysMessageW(errorCode);
+	return errorMessage;
+}
+
+std::string Error::BuildWhat() const
+{
+	return ToNarrow(Error::Message());
+}
+
+std::wstring Error::BuildWWhat() const
+{
+	return Error::Message();
 }
 
 ErrorLevel Error::AssignErrorLevel() const
@@ -236,68 +200,80 @@ ErrorLevel Error::AssignErrorLevel() const
 	}
 }
 
-const wchar_t* Error::ErrorLevelToString(ErrorLevel level) const
+const wchar_t* Error::ErrorLevelToString(ErrorLevel errorLevel) const
 {
-	switch (level)
+	switch (errorLevel)
 	{
 	case ErrorLevel::Info:
-		return L"Info Error!";
+		return L"Info Error";
 	case ErrorLevel::Warning:
-		return L"Warning Error!";
+		return L"Warning Error";
 	case ErrorLevel::General:
-		return L"General Error!";
+		return L"General Error";
 	case ErrorLevel::Critical:
-		return L"Critical Error!";
+		return L"Critical Error";
 	case ErrorLevel::Fatal:
-		return L"Fatal Error!";
+		return L"Fatal Error";
 	default:
-		return L"Unknown Error!";
+		return L"Unknown Error";
+	}
+}
+
+void Error::Log() const
+{
+	std::wcout << L"LOGGED ERROR:\n" << Error::Message() << L'\n';
+	std::wstring causeChain = Error::LogCauseChain();
+	if (!causeChain.empty())
+	{
+		std::wcout << L"CAUSE CHAIN:\n" << std::wstring(causeChain.begin(), causeChain.end());
 	}
 }
 
 int Error::MsgBox() const
 {
-	return MessageBoxExW(nullptr, Msg().c_str(), ErrorLevelToString(GetErrorLevel()), MB_OK | MB_ICONERROR, LANG_USER_DEFAULT);
+	return MessageBoxExW
+	(
+		nullptr,
+		Error::Message().c_str(),
+		Error::ErrorLevelToString(Error::GetErrorLevel()),
+		MB_OK | MB_ICONERROR,
+		LANG_USER_DEFAULT
+	);
 }
 
 const char* Error::what() const noexcept
 {
-	return m_what.c_str();
+	if (what_.empty()) what_ = Error::BuildWhat();
+	return what_.c_str();
 }
 
-std::wstring Error::WideChar(const char* string) const
+const wchar_t* Error::wwhat() const noexcept
 {
-	if (!string) return L"NULL";
-	int len = MultiByteToWideChar(CP_UTF8, 0, string, -1, nullptr, 0);
-
-	if (len <= 0) return L"conversion failed";
-	std::wstring wstr(len, L'\0');
-	MultiByteToWideChar(CP_UTF8, 0, string, -1, &wstr[0], len);
-	wstr.resize(wcslen(wstr.c_str()));
-	return wstr;
+	if (wwhat_.empty()) wwhat_ = Error::BuildWWhat();
+	return wwhat_.c_str();
 }
 
-std::wstring Error::GetCauseChain() const
+std::wstring Error::LogCauseChain() const
 {
 	std::wostringstream woss;
-	if (GetCause())
+	if (Error::GetCause())
 	{
 		try
 		{
-			std::rethrow_exception(GetCause());
+			std::rethrow_exception(Error::GetCause());
 		}
 		catch (const Error& nestedError)
 		{
-			woss << L"Caused by Error class: " << Error::WideChar(nestedError.what()) << L'\n';
-			woss << nestedError.GetCauseChain(); // recursive call
+			woss << L"Caused by Error class: " << nestedError.wwhat() << L'\n';
+			woss << nestedError.LogCauseChain(); // recursive call
 		}
 		catch (const std::exception& nestedException)
 		{
-			woss << L"Caused by std::exception: " << Error::WideChar(nestedException.what()) << L'\n';
+			woss << L"Caused by std::exception: " << ToWide(nestedException.what()) << L'\n';
 		}
 		catch (const char* nestedMsg)
 		{
-			woss << L"Caused by C-string exception: " << Error::WideChar(nestedMsg) << L'\n';
+			woss << L"Caused by C-string exception: " << ToWide(nestedMsg) << L'\n';
 		}
 		catch (const wchar_t* nestedWideMsg)
 		{

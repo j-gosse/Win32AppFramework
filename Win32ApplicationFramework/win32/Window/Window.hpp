@@ -1,7 +1,7 @@
 /*!
 win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: October 10, 2025
+Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -18,37 +18,37 @@ Window header file.
 class Window
 {
 private:
-	HWND m_hWindow;
-	WNDCLASSEX m_windowClass;
-	HINSTANCE m_hInstance;
-	HACCEL m_hAccelTable;
-	STARTUPINFO m_startupInfo;
-	PROCESS_INFORMATION m_processInfo;
-	SYSTEM_INFO m_systemInfo;
+	HWND hWindow_;
+	WNDCLASSEX windowClass_;
+	HINSTANCE hInstance_;
+	HACCEL hAccelTable_;
+	STARTUPINFO startupInfo_;
+	PROCESS_INFORMATION processInfo_;
+	SYSTEM_INFO systemInfo_;
 
 	static constexpr const int MAX_LOADSTRING = 100;
-	WCHAR m_windowName[MAX_LOADSTRING];
-	WCHAR m_windowClassName[MAX_LOADSTRING];
+	WCHAR windowName_[MAX_LOADSTRING];
+	WCHAR windowClassName_[MAX_LOADSTRING];
 
 	static constexpr const LONG WINDOW_WIDTH = 800;
 	static constexpr const LONG WINDOW_HEIGHT = 600;
-	int m_screenWidth = WINDOW_WIDTH;
-	int m_screenHeight = WINDOW_HEIGHT;
-	LONG m_desktopWidth = GetSystemMetrics(SM_CXSCREEN);
-	LONG m_desktopHeight = GetSystemMetrics(SM_CYSCREEN);
+	int screenWidth_ = WINDOW_WIDTH;
+	int screenHeight_ = WINDOW_HEIGHT;
+	LONG desktopWidth_ = GetSystemMetrics(SM_CXSCREEN);
+	LONG desktopHeight_ = GetSystemMetrics(SM_CYSCREEN);
 
-	const ULONGLONG m_startTime = GetTickCount64();
-	ULONGLONG m_currentTime;
-	ULONGLONG m_elapsedTime;
+	const ULONGLONG startTime_ = GetTickCount64();
+	ULONGLONG currentTime_;
+	ULONGLONG elapsedTime_;
 
-	bool m_cleaned = false;
+	bool isCleaned_ = false;
 
 	/**
 	* @brief	Handle messages sent to the window on a switch-case basis.
 	* @param	UINT uMsg		: The message identifier. This parameter specifies which message is being sent to the window.
 	* @param	WPARAM wParam	: Provides additional message-specific information. Indicates whether the window was minimized, maximized, or resized.
 	* @param	LPARAM lParam	: Provides additional message-specific information. Contains the new width and height of the window.
-	* @return	DefWindowProcW(m_hWindow, uMsg, wParam, lParam) when default switch case or return 0 when switch case
+	* @return	DefWindowProcW(hWindow_, uMsg, wParam, lParam) when default switch case or return 0 when switch case
 	*/
 	LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -64,7 +64,7 @@ private:
 
 	/**
 	* @brief	Registers the main window class.
-	* @return	RegisterClassExW(&m_windowClass)
+	* @return	RegisterClassExW(&windowClass_)
 	*/
 	ATOM RegisterWindowClass();
 
@@ -111,7 +111,7 @@ private:
 
 	/**
 	* @brief	Returns the number of milliseconds elapsed since the initialization of the Window.
-	* @return	ULONGLONG m_elapsedTime
+	* @return	ULONGLONG elapsedTime_
 	*/
 	ULONGLONG Elapsed();
 
@@ -182,13 +182,13 @@ public:
 
 	/**
 	* @brief	Get the window handle.
-	* @return	HWND m_hWindow
+	* @return	HWND hWindow_
 	*/
-	HWND GetWindow() const { return m_hWindow; }
+	HWND GetWindow() const { return hWindow_; }
 
 	/**
 	* @brief	Get the elapsed time in milliseconds.
-	* @return	ULONGLONG m_elapsedTime
+	* @return	ULONGLONG elapsedTime_
 	*/
 	ULONGLONG GetElapsed() { return Elapsed(); }
 
@@ -198,9 +198,9 @@ public:
 	*/
 	void SetWindowTitle(const wchar_t* title = nullptr)
 	{
-		if (title && *title) wcsncpy_s(m_windowName, title, static_cast<size_t>(MAX_LOADSTRING) - 1);
-		else LoadStringW(m_hInstance, IDS_WINDOW_TITLE, m_windowName, MAX_LOADSTRING);
-		if (m_hWindow) SetWindowTextW(m_hWindow, m_windowName);
+		if (title && *title) wcsncpy_s(windowName_, title, static_cast<size_t>(MAX_LOADSTRING) - 1);
+		else LoadStringW(hInstance_, IDS_WINDOW_TITLE, windowName_, MAX_LOADSTRING);
+		if (hWindow_) SetWindowTextW(hWindow_, windowName_);
 	}
 };
 

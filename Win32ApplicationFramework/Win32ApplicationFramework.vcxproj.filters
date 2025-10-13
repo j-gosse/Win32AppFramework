@@ -40,6 +40,9 @@
     <Filter Include="Source Files\win32\Error">
       <UniqueIdentifier>{61e571bd-3dbe-42a0-aaa4-98a79d0e8a4c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\win32\utils">
+      <UniqueIdentifier>{70465802-1151-4f55-a5ec-d413c6bddc91}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="win32\win32_platform.cpp">
@@ -82,6 +85,9 @@
     </ClInclude>
     <ClInclude Include="win32\Error\errormacros.hpp">
       <Filter>Header Files\win32\Error</Filter>
+    </ClInclude>
+    <ClInclude Include="win32\utils\string_utils.hpp">
+      <Filter>Header Files\win32\utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

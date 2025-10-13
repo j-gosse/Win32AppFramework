@@ -145,6 +145,7 @@
     <ClInclude Include="win32\framework.h" />
     <ClInclude Include="win32\resource.h" />
     <ClInclude Include="win32\targetver.h" />
+    <ClInclude Include="win32\utils\string_utils.hpp" />
     <ClInclude Include="win32\Window\Window.hpp" />
   </ItemGroup>
   <ItemGroup>
