@@ -141,7 +141,7 @@
     <ClInclude Include="win32\debug.h" />
     <ClInclude Include="win32\Error\Error.hpp" />
     <ClInclude Include="win32\Error\ErrorLevel.hpp" />
-    <ClInclude Include="win32\Error\errormacros.hpp" />
+    <ClInclude Include="win32\Error\error_macros.hpp" />
     <ClInclude Include="win32\framework.h" />
     <ClInclude Include="win32\resource.h" />
     <ClInclude Include="win32\targetver.h" />

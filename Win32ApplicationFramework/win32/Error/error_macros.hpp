@@ -1,7 +1,7 @@
 /*!
-win32\Error\errormacros.hpp
+win32\Error\error_macros.hpp
 Created: October 11, 2025
-Updated: October 11, 2025
+Updated: October 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error Macros header file.
@@ -9,8 +9,8 @@ Error Macros header file.
 
 #pragma once
 
-#ifndef ERRORMACROS_HPP_
-#define ERRORMACROS_HPP_
+#ifndef ERROR_MACROS_HPP_
+#define ERROR_MACROS_HPP_
 
 #include "Error.hpp"
 
