@@ -1,13 +1,13 @@
 /*! \project    Win32ApplicationFramework
-    \file       win32\win32_platform.cpp
+    \file       lib\source\win32\win32_platform.cpp
     \version    PRE-ALPHA 1.7
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality 
-                including message loops, unit tests, error handling, and optional creation 
-                of console, window or both! Ideal as a foundation for GUI apps, game engines, 
-                debug utils, etc.
+                for console and window creation, message loops, and error handling. 
+                Includes a suite for unit testing and various helper utilities. 
+                Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
     \created    October 5, 2025
-    \updated    October 25, 2025
+    \updated    October 30, 2025
 
     \MSVC       /std:c++20
     \GNUC       -m64 -std=c++20
@@ -27,27 +27,33 @@
     limitations under the License.
 */
 
-#include <win32/utils/string_utils.hpp>
-#include <win32/Error/error_macros.hpp>
-#include <win32/TestSuite/TestSuite.hpp>
 #include <win32/Console/Console.hpp>
 #include <win32/Window/Window.hpp>
+#include <win32/Error/error_macros.hpp>
+#include <TestSuite/TestSuite.hpp>
+#include <utils/string_utils.hpp>
+
+using namespace winxframe;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
+    UNREFERENCED_PARAMETER(hPrevInstance);
+    UNREFERENCED_PARAMETER(lpCmdLine);
+    UNREFERENCED_PARAMETER(nCmdShow);
+
     // enable memory leak checking
     #if defined(_DEBUG) && defined(_WIN32)
     ENABLE_CRT_LEAK_CHECKING;
     #endif
 
     // init console
-    std::unique_ptr<Console, std::default_delete<Console>> console = std::make_unique<Console>(hInstance);
+    std::unique_ptr<winxframe::Console, std::default_delete<winxframe::Console>> console = std::make_unique<winxframe::Console>(hInstance);
 
     // init window
-    std::unique_ptr<Window, std::default_delete<Window>> window = std::make_unique<Window>(hInstance);
+    //std::unique_ptr<winxframe::Window, std::default_delete<winxframe::Window>> window = std::make_unique<winxframe::Window>(hInstance);
 
     // run unit tests
-    TestRegistry::RunAll();
+    winxframe::TestRegistry::RunAll();
 
     try
     {
@@ -98,10 +104,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
             OutputDebugStringW(L"Entering the main loop...\n");
 
             // main loop
-            UINT wMsgFilterMin = 0;
-            UINT wMsgFilterMax = 0;
-            while (window->ProcessMessages(wMsgFilterMin, wMsgFilterMax))
-            {
+            //UINT wMsgFilterMin = 0;
+            //UINT wMsgFilterMax = 0;
+            //while (window->ProcessMessages(wMsgFilterMin, wMsgFilterMax))
+            //{
                 //std::wcout << window->GetElapsed() << L'\n';
 
                 /*
@@ -111,13 +117,13 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
                     obj->Render(window->GetWindow());
                 */
 
-                Sleep(16);  // simulate ~60 FPS
-            }
+                //Sleep(16);  // simulate ~60 FPS
+            //}
 
             std::wcout << L"Exiting the main loop..." << std::endl;
             OutputDebugStringW(L"Exiting the main loop...\n");
         }
-        catch (const Error& e)
+        catch (const winxframe::Error& e)
         {
             e.MsgBox();
             RETHROW_ERROR_CTX(L"This is the inner catch context.");
@@ -144,7 +150,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
             RETHROW_ERROR();
         }
     }
-    catch (const Error& e)
+    catch (const winxframe::Error& e)
     {
         std::wcerr << L"Caught Error (Error class): " << e.wwhat() << L'\n';
         std::wcerr << e.LogCauseChain();
@@ -154,14 +160,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     }
     catch (const std::exception& e)
     {
-        std::wcerr << L"Caught Error (std::exception): " << ToWide(e.what()) << L'\n';
+        std::wcerr << L"Caught Error (std::exception): " << winxframe::string_utils::ToWide(e.what()) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch();
         return EXIT_FAILURE;
     }
     catch (const char* msg)
     {
-        std::wcerr << L"Caught Error (C-string exception): " << ToWide(msg) << L'\n';
+        std::wcerr << L"Caught Error (C-string exception): " << winxframe::string_utils::ToWide(msg) << L'\n';
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch();
         return EXIT_FAILURE;
@@ -174,8 +180,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         return EXIT_FAILURE;
     }
 
-    window.reset();
-    window = nullptr;
+    //window.reset();
+    //window = nullptr;
 
     std::wcout << L"\nProgram exit success. Press any key to continue..." << std::endl;
     _getch();

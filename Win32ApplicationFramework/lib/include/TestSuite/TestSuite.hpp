@@ -1,10 +1,13 @@
 /*!
-win32\TestSuite\TestSuite.hpp
+lib\include\TestSuite\TestSuite.hpp
 Created: October 21, 2025
-Updated: October 26, 2025
+Updated: October 30, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite header file.
+
+\note
+Testing structure and utilization is based on how testing is handled with Boost, Doctest, Catch2, and other similar unit testing frameworks.
 */
 
 #pragma once
@@ -14,105 +17,117 @@ Test Suite header file.
 
 #include <win32/framework.h>
 
-class TestRegistry
+namespace winxframe
 {
-public:
-	class TestCase
+	class TestRegistry
 	{
+	public:
+		class TestCase
+		{
+		private:
+			std::string caseName_;
+			std::string groupName_;
+			std::string sectionName_;
+			std::uintmax_t testsChecked_ = 0;
+			std::uintmax_t testsPassed_ = 0;
+			double caseWeight_ = 1.0;
+			const std::string defaultGroupName_ = "default";
+			const std::string defaultSectionName_ = "default";
+			std::chrono::nanoseconds caseElapsed_{};
+
+		public:
+			friend class TestRegistry;
+			TestCase(TestCase const&) = delete;
+			void operator = (TestCase const&) = delete;
+
+			TestCase(const std::string& name, const std::string& group, const std::string& section, double weight = 1.0);
+			TestCase(const std::string& name) : TestCase(name, defaultGroupName_, defaultSectionName_) {}
+			TestCase(const std::string& name, double weight) : TestCase(name, defaultGroupName_, defaultSectionName_, weight) {}
+			TestCase(const std::string& name, const std::string& group) : TestCase(name, group, defaultSectionName_) {}
+			TestCase(const std::string& name, const std::string& group, double weight) : TestCase(name, group, defaultSectionName_, weight) {}
+			virtual ~TestCase() = default;
+
+			void Check(bool condition, const char* const conditionString);
+			void Check(bool condition, const std::string& message);
+			template <typename LHS, typename RHS>
+			void CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString);
+			template <typename LHS, typename RHS, typename Value>
+			void CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString);
+			void LogCheckFail(const char* const conditionString) const noexcept;
+			void LogCheckFail(const std::string& message) const noexcept;
+			template <typename LHS, typename RHS>
+			void LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString) const noexcept;
+			template <typename LHS, typename RHS, typename Value>
+			void LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString) const noexcept;
+			virtual void Run() = 0;
+
+			const std::string& GetCaseName() const noexcept { return caseName_; }
+			const std::string& GetGroupName() const noexcept { return groupName_; }
+			const std::string& GetSectionName() const noexcept { return sectionName_; }
+			std::uintmax_t GetTestsChecked() const noexcept { return testsChecked_; }
+			std::uintmax_t GetTestsPassed() const noexcept { return testsPassed_; }
+			double GetCaseWeight() const noexcept { return caseWeight_; }
+			std::chrono::nanoseconds GetCaseElapsed() const noexcept { return caseElapsed_; }
+			void SetCaseElapsed(std::chrono::nanoseconds elapsed) { caseElapsed_ = elapsed; }
+		};
+
 	private:
-		std::string caseName_;
-		std::string groupName_;
-		std::string sectionName_;
-		std::uintmax_t testsChecked_ = 0;
-		std::uintmax_t testsPassed_ = 0;
-		double caseWeight_ = 1.0;
-		static const std::string defaultGroup_;
-		static const std::string defaultSection_;
-		std::chrono::nanoseconds elapsed_{};
+		static std::unique_ptr<std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestCase*>>>> casesPtr_;
+		static TestCase* currentCasePtr_;
+		static std::ofstream logFile_;
+
+		const int Run() const noexcept;
+		static std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestCase*>>>& CaseMap();
+		const void ReportSummary(std::uintmax_t casesTotal, std::streamsize numMaxGroupName, std::streamsize numMaxSectionName,
+			std::streamsize numMaxCaseName, std::streamsize numMaxTests, std::streamsize numMaxPercent, std::streamsize numMaxWeight,
+			std::streamsize numMaxStatus, std::streamsize numMaxTime) const noexcept;
 
 	public:
-		friend class TestRegistry;
-		TestCase(TestCase const&) = delete;
-		void operator = (TestCase const&) = delete;
-
-		TestCase(std::string const& name, std::string const& group, std::string const& section, double weight = 1.0);
-		TestCase(std::string const& name) : TestCase(name, defaultGroup_, defaultSection_) {}
-		TestCase(std::string const& name, double weight) : TestCase(name, defaultGroup_, defaultSection_, weight) {}
-		TestCase(std::string const& name, std::string const& group) : TestCase(name, group, defaultSection_) {}
-		TestCase(std::string const& name, std::string const& group, double weight) : TestCase(name, group, defaultSection_, weight) {}
-
-		virtual ~TestCase() = default;
-
-		void Check(bool condition, const char* const conditionString, const char* const file, int line);
-		void CheckMsg(bool condition, const std::string& message, const char* const file, int line);
-		template <typename LHS, typename RHS>
-		void CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line);
-		template <typename LHS, typename RHS, typename VALUE>
-		void CheckWithin(const LHS& lhs, const RHS& rhs, const VALUE& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line);
-		virtual void Run() = 0;
-
-		std::string CaseName() const { return caseName_; }
-		std::string GroupName() const { return groupName_; }
-		std::string SectionName() const { return sectionName_; }
-		std::uintmax_t TestsChecked() const { return testsChecked_; }
-		std::uintmax_t TestsPassed() const { return testsPassed_; }
-		double CaseWeight() const { return caseWeight_; }
-		std::chrono::nanoseconds Elapsed() const { return elapsed_; }
-
-		constexpr auto operator <=> (TestCase const& rhs) const { return caseName_ <=> rhs.caseName_; }
-		constexpr bool operator == (TestCase const& rhs) const { return caseName_ == rhs.caseName_; }
+		TestRegistry();
+		virtual ~TestRegistry();
+		static void RunAll();
+		static TestCase* CurrentCase();
 	};
 
-private:
-	static std::unique_ptr<std::map<std::string, std::map<std::string, std::vector<TestCase*>>>> casesPtr_;
-	static TestCase* currentCasePtr_;
-	static std::ofstream logFile_;
-
-	static std::map<std::string, std::map<std::string, std::vector<TestCase*>>>& Cases();
-	int Run();
-
-public:
-	TestRegistry();
-	virtual ~TestRegistry();
-
-	static TestCase* CurrentCase(const char* file, int line);
-	static void RunAll();
-};
-
-template <typename LHS, typename RHS>
-void TestRegistry::TestCase::CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line)
-{
-	bool condition = lhs == rhs;
-	++testsChecked_;
-	if (!condition)
+	template <typename LHS, typename RHS>
+	void TestRegistry::TestCase::CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString)
 	{
-		std::basic_ostringstream<char> oss;
-		std::basic_ostream<char>& os = oss;
-		std::filesystem::path f = file;
-		os << f.filename().string() << " (" << line << "): error in \"" << caseName_ << "\": ";
-		oss << "\"" << lhsString << "\" [" << lhs << "] != \"" << rhsString << "\" [" << rhs << "]\n";
+		++testsChecked_;
+		if (!(lhs == rhs)) TestRegistry::TestCase::LogCheckEqualFail(lhs, rhs, lhsString, rhsString);
+		else ++testsPassed_;
+	}
+
+	template <typename LHS, typename RHS, typename Value>
+	void TestRegistry::TestCase::CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString)
+	{
+		bool condition = std::abs((lhs)-(rhs)) <= std::abs(min);
+		++testsChecked_;
+		if (!condition) TestRegistry::TestCase::LogCheckWithinFail(lhs, rhs, min, lhsString, rhsString, minString);
+		else ++testsPassed_;
+	}
+
+	template <typename LHS, typename RHS>
+	void TestRegistry::TestCase::LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString) const noexcept
+	{
+		std::ostringstream oss;
+		std::filesystem::path file = __FILE__;
+		oss << "File: " << file.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << "\": "
+			<< "\"" << lhsString << "\" [" << lhs << "] != \"" << rhsString << "\" [" << rhs << "]\n";
 		std::cout << oss.str();
 		if (logFile_.is_open()) logFile_ << oss.str();
 	}
-	else ++testsPassed_;
-}
 
-template <typename LHS, typename RHS, typename VALUE>
-void TestRegistry::TestCase::CheckWithin(const LHS& lhs, const RHS& rhs, const VALUE& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line)
-{
-	bool condition = std::abs((lhs)-(rhs)) <= std::abs(min);
-	++testsChecked_;
-	if (!condition)
+	template <typename LHS, typename RHS, typename Value>
+	void TestRegistry::TestCase::LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString) const noexcept
 	{
-		std::basic_ostringstream<char> oss;
-		std::basic_ostream<char>& os = oss;
-		std::filesystem::path f = file;
-		os << f.filename().string() << " (" << line << "): error in \"" << caseName_ << "\": ";
-		oss << "difference(" << lhsString << ", " << rhsString << ") > " << minString << " ==> \t|" << lhs << " - " << rhs << "| > " << std::abs(min) << '\n';
+		std::ostringstream oss;
+		std::filesystem::path file = __FILE__;
+		oss << "File: " << file.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << "\": "
+			<< "difference(" << lhsString << ", " << rhsString << ") > " << minString << " ==> \t|" << lhs << " - " << rhs << "| > " << std::abs(min) << '\n';
 		std::cout << oss.str();
 		if (logFile_.is_open()) logFile_ << oss.str();
 	}
-	else ++testsPassed_;
-}
+
+}; // end of namespace winxframe
 
 #endif

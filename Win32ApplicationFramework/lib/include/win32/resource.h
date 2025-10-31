@@ -1,7 +1,7 @@
 /*!
-win32\resource.h
+lib\include\win32\resource.h
 Created: October 5, 2025
-Updated: October 5, 2025
+Updated: October 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Resource header file {{NO DEPENDENCIES}} : Microsoft Visual C++ generated include file. Included with file "resource_script.rc"

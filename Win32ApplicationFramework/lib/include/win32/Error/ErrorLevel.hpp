@@ -1,10 +1,10 @@
 /*!
-win32\Error\ErrorLevel.hpp
+lib\include\win32\Error\ErrorLevel.hpp
 Created: October 11, 2025
-Updated: October 11, 2025
+Updated: October 28, 2025
 Copyright (c) 2025, Jacob Gosse
 
-ErrorLevel header file.
+Error Level header file.
 */
 
 #pragma once
@@ -12,14 +12,17 @@ ErrorLevel header file.
 #ifndef ERRORLEVEL_HPP_
 #define ERRORLEVEL_HPP_
 
-enum class ErrorLevel
+namespace winxframe
 {
-	Info,
-	Warning,
-	General,
-	Critical,
-	Fatal,
-	Unknown
-};
+	enum class ErrorLevel
+	{
+		Info,
+		Warning,
+		General,
+		Critical,
+		Fatal,
+		Unknown
+	};
+}; // end of namespace winxframe
 
 #endif

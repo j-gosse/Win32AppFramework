@@ -1,7 +1,7 @@
 /*!
-win32\debug.h
+lib\include\win32\debug.h
 Created: October 5, 2025
-Updated: October 10, 2025
+Updated: October 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Debug header file : win32 debug file, currently focuses on memory leak checking.

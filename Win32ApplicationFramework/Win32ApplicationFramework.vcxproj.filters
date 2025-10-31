@@ -13,99 +13,156 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="Resource Files\icons">
-      <UniqueIdentifier>{5fd9df3a-c606-453a-931a-f7ee7bc6fc09}</UniqueIdentifier>
+    <Filter Include="Header Files\lib">
+      <UniqueIdentifier>{70332bc7-e979-4e96-adf1-f423bb042a51}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\win32">
+    <Filter Include="Header Files\lib\win32">
       <UniqueIdentifier>{6bc4b173-e603-403a-941b-d42ec96fd6e6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\win32">
-      <UniqueIdentifier>{975f638f-1abe-415c-abe7-43c417d446d2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\win32\Window">
-      <UniqueIdentifier>{e918fe83-a014-4271-be80-86d8eb61e4ef}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\win32\Window">
+    <Filter Include="Header Files\lib\win32\Window">
       <UniqueIdentifier>{5b6d2e6c-79ed-48b5-a9c9-2fa9d417060d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\win32\Console">
-      <UniqueIdentifier>{443563ca-82db-44cc-b8b5-36ee325d20d9}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\win32\Console">
+    <Filter Include="Header Files\lib\win32\Console">
       <UniqueIdentifier>{1e8b50c9-9c9d-411e-beb7-e6dab1407e7c}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\win32\Error">
+    <Filter Include="Header Files\lib\win32\Error">
       <UniqueIdentifier>{08024382-653a-4080-8904-a0e7099e803e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\win32\Error">
-      <UniqueIdentifier>{61e571bd-3dbe-42a0-aaa4-98a79d0e8a4c}</UniqueIdentifier>
+    <Filter Include="Header Files\lib\TestSuite">
+      <UniqueIdentifier>{bbf52e36-43c9-4989-a4d5-965d71c6abae}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\win32\utils">
+    <Filter Include="Source Files\lib">
+      <UniqueIdentifier>{0e689d5e-834e-4fcf-befb-4a24c95e892a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\TestSuite">
+      <UniqueIdentifier>{589ffdc9-ce6a-44ce-8ced-6ce0b6f74023}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\utils">
       <UniqueIdentifier>{70465802-1151-4f55-a5ec-d413c6bddc91}</UniqueIdentifier>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="win32\win32_platform.cpp">
-      <Filter>Source Files\win32</Filter>
-    </ClCompile>
-    <ClCompile Include="win32\Window\Window.cpp">
-      <Filter>Source Files\win32\Window</Filter>
-    </ClCompile>
-    <ClCompile Include="win32\Console\Console.cpp">
-      <Filter>Source Files\win32\Console</Filter>
-    </ClCompile>
-    <ClCompile Include="win32\Error\Error.cpp">
-      <Filter>Source Files\win32\Error</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="win32\framework.h">
-      <Filter>Header Files\win32</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\resource.h">
-      <Filter>Header Files\win32</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\targetver.h">
-      <Filter>Header Files\win32</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\debug.h">
-      <Filter>Header Files\win32</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\Window\Window.hpp">
-      <Filter>Header Files\win32\Window</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\Console\Console.hpp">
-      <Filter>Header Files\win32\Console</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\Error\Error.hpp">
-      <Filter>Header Files\win32\Error</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\Error\ErrorLevel.hpp">
-      <Filter>Header Files\win32\Error</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\utils\string_utils.hpp">
-      <Filter>Header Files\win32\utils</Filter>
-    </ClInclude>
-    <ClInclude Include="win32\Error\error_macros.hpp">
-      <Filter>Header Files\win32\Error</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="res\resource_script.rc">
-      <Filter>Resource Files</Filter>
-    </ResourceCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\icons\primary.ico">
-      <Filter>Resource Files\icons</Filter>
-    </Image>
-    <Image Include="res\icons\small.ico">
-      <Filter>Resource Files\icons</Filter>
-    </Image>
+    <Filter Include="Source Files\lib\TestSuite\tests">
+      <UniqueIdentifier>{604132e6-b9e7-4de0-9eec-a85c5ed6a92b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\win32">
+      <UniqueIdentifier>{975f638f-1abe-415c-abe7-43c417d446d2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\win32\Window">
+      <UniqueIdentifier>{e918fe83-a014-4271-be80-86d8eb61e4ef}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\win32\Console">
+      <UniqueIdentifier>{443563ca-82db-44cc-b8b5-36ee325d20d9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\lib\win32\Error">
+      <UniqueIdentifier>{61e571bd-3dbe-42a0-aaa4-98a79d0e8a4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\lib\win32\utils">
+      <UniqueIdentifier>{56c715a8-d431-4b0c-889f-a8b2e6abdea7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\lib">
+      <UniqueIdentifier>{a14fb597-1990-4649-ba72-c202116bd84b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\lib\win32">
+      <UniqueIdentifier>{76ea4833-4ff3-480d-918f-4b9c0454128f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\lib\win32\res">
+      <UniqueIdentifier>{b9c51b45-c971-4f47-8fe6-88e637f44d75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files\lib\win32\res\icons">
+      <UniqueIdentifier>{5fd9df3a-c606-453a-931a-f7ee7bc6fc09}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="NOTICE.txt">
       <Filter>Source Files</Filter>
     </Text>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lib\include\win32\Console\Console.hpp">
+      <Filter>Header Files\lib\win32\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Error\Error.hpp">
+      <Filter>Header Files\lib\win32\Error</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Error\error_macros.hpp">
+      <Filter>Header Files\lib\win32\Error</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Error\ErrorLevel.hpp">
+      <Filter>Header Files\lib\win32\Error</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\debug.h">
+      <Filter>Header Files\lib\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\framework.h">
+      <Filter>Header Files\lib\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\resource.h">
+      <Filter>Header Files\lib\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\targetver.h">
+      <Filter>Header Files\lib\win32</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\Window.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\utils\math_utils.hpp">
+      <Filter>Header Files\lib\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\utils\string_utils.hpp">
+      <Filter>Header Files\lib\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\TestSuite\test_macros.hpp">
+      <Filter>Header Files\lib\TestSuite</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\TestSuite\TestSuite.hpp">
+      <Filter>Header Files\lib\TestSuite</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\utils\win32_utils.hpp">
+      <Filter>Header Files\lib\win32\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\utils\container_utils.hpp">
+      <Filter>Header Files\lib\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\utils\time_utils.hpp">
+      <Filter>Header Files\lib\utils</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\utils\stream_utils.hpp">
+      <Filter>Header Files\lib\utils</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lib\source\win32\win32_platform.cpp">
+      <Filter>Source Files\lib\win32</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\win32\Window\Window.cpp">
+      <Filter>Source Files\lib\win32\Window</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\win32\Error\Error.cpp">
+      <Filter>Source Files\lib\win32\Error</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\win32\Console\Console.cpp">
+      <Filter>Source Files\lib\win32\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\TestSuite\TestSuite.cpp">
+      <Filter>Source Files\lib\TestSuite</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\TestSuite\tests\math_tests.cpp">
+      <Filter>Source Files\lib\TestSuite\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\TestSuite\tests\string_tests.cpp">
+      <Filter>Source Files\lib\TestSuite\tests</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="lib\source\win32\res\resource_script.rc">
+      <Filter>Resource Files\lib\win32\res</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="lib\source\win32\res\icons\primary.ico">
+      <Filter>Resource Files\lib\win32\res\icons</Filter>
+    </Image>
+    <Image Include="lib\source\win32\res\icons\small.ico">
+      <Filter>Resource Files\lib\win32\res\icons</Filter>
+    </Image>
   </ItemGroup>
 </Project>

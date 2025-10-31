@@ -1,0 +1,26 @@
+  1.0	1.0	Math Tests	Simple Calculations	ut_math_01
+  1.0	1.0	Math Tests	Absolute Values	ut_math_02
+  1.0	1.0	Math Tests	Modulus	ut_math_03
+  1.0	1.0	Math Tests	Natural Logarithm	ut_math_04
+  1.0	1.0	Math Tests	Exponentiation	ut_math_05
+  1.0	1.0	Math Tests	Exponentiation	ut_math_16
+  1.0	1.0	Math Tests	Floor Division	ut_math_06
+  1.0	1.0	Math Tests	Greatest Common Divisor	ut_math_07
+  1.0	1.0	Math Tests	Least Common Multiple	ut_math_08
+  1.0	1.0	Math Tests	Clamp	ut_math_09
+  1.0	1.0	Math Tests	Lesser of Two Values	ut_math_10
+  1.0	1.0	Math Tests	Greater of Two Values	ut_math_11
+  1.0	1.0	Math Tests	Factorial	ut_math_12
+  1.0	1.0	Math Tests	Modulus Inverse	ut_math_13
+  1.0	1.0	Math Tests	Modulus Binomial	ut_math_14
+  1.0	1.0	Math Tests	Modulus Binomial	ut_math_15
+  1.0	1.0	Math Tests	Fibonacci	ut_math_17
+  1.0	1.0	Math Tests	Summation	ut_math_18
+  1.0	1.0	Math Tests	Summation	ut_math_19
+  1.0	1.0	String Tests		ut_string_01
+
+Total Running Time: 2.20 ms
+81224/81224 tests passed (100.0%)
+20/20 cases (100.0%)
+Total Grade: 20.0 of 20.0 (100.0%)
+

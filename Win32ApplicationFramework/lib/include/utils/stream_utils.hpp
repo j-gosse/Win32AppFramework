@@ -44,6 +44,6 @@ namespace winxframe
         }
     #pragma endregion
 	}; // end of namespace stream_utils
-}; // end of namespace 
+}; // end of namespace
 
 #endif

@@ -77,7 +77,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lib\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -93,7 +93,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lib\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -107,7 +107,7 @@
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lib\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -123,7 +123,7 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir)lib\include;$(ProjectDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -131,32 +131,42 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="win32\Console\Console.cpp" />
-    <ClCompile Include="win32\Error\Error.cpp" />
-    <ClCompile Include="win32\win32_platform.cpp" />
-    <ClCompile Include="win32\Window\Window.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="win32\Console\Console.hpp" />
-    <ClInclude Include="win32\debug.h" />
-    <ClInclude Include="win32\Error\Error.hpp" />
-    <ClInclude Include="win32\Error\ErrorLevel.hpp" />
-    <ClInclude Include="win32\Error\error_macros.hpp" />
-    <ClInclude Include="win32\framework.h" />
-    <ClInclude Include="win32\resource.h" />
-    <ClInclude Include="win32\targetver.h" />
-    <ClInclude Include="win32\utils\string_utils.hpp" />
-    <ClInclude Include="win32\Window\Window.hpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ResourceCompile Include="res\resource_script.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <Image Include="res\icons\primary.ico" />
-    <Image Include="res\icons\small.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <Text Include="NOTICE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="lib\include\TestSuite\TestSuite.hpp" />
+    <ClInclude Include="lib\include\TestSuite\test_macros.hpp" />
+    <ClInclude Include="lib\include\utils\container_utils.hpp" />
+    <ClInclude Include="lib\include\utils\math_utils.hpp" />
+    <ClInclude Include="lib\include\utils\stream_utils.hpp" />
+    <ClInclude Include="lib\include\utils\string_utils.hpp" />
+    <ClInclude Include="lib\include\utils\time_utils.hpp" />
+    <ClInclude Include="lib\include\win32\Console\Console.hpp" />
+    <ClInclude Include="lib\include\win32\debug.h" />
+    <ClInclude Include="lib\include\win32\Error\Error.hpp" />
+    <ClInclude Include="lib\include\win32\Error\ErrorLevel.hpp" />
+    <ClInclude Include="lib\include\win32\Error\error_macros.hpp" />
+    <ClInclude Include="lib\include\win32\framework.h" />
+    <ClInclude Include="lib\include\win32\resource.h" />
+    <ClInclude Include="lib\include\win32\targetver.h" />
+    <ClInclude Include="lib\include\win32\utils\win32_utils.hpp" />
+    <ClInclude Include="lib\include\win32\Window\Window.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="lib\source\TestSuite\TestSuite.cpp" />
+    <ClCompile Include="lib\source\TestSuite\tests\math_tests.cpp" />
+    <ClCompile Include="lib\source\TestSuite\tests\string_tests.cpp" />
+    <ClCompile Include="lib\source\win32\Console\Console.cpp" />
+    <ClCompile Include="lib\source\win32\Error\Error.cpp" />
+    <ClCompile Include="lib\source\win32\win32_platform.cpp" />
+    <ClCompile Include="lib\source\win32\Window\Window.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="lib\source\win32\res\resource_script.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="lib\source\win32\res\icons\primary.ico" />
+    <Image Include="lib\source\win32\res\icons\small.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

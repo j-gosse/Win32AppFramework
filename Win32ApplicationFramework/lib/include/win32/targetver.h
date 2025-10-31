@@ -1,10 +1,10 @@
 /*!
-win32\targetver.h
+lib\include\win32\targetver.h
 Created: October 5, 2025
-Updated: October 5, 2025
+Updated: October 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
-Target Version header file : Defines the application's targeted Windows platform.
+Target Version header file. Defines the application's targeted Windows platform.
 
 Including SDKDDKVer.h defines the highest available Windows platform.
 If you wish to build your application for a previous Windows platform, include WinSDKVer.h and

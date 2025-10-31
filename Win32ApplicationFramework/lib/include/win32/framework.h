@@ -1,10 +1,10 @@
 /*!
-win32\framework.h
+lib\include\win32\framework.h
 Created: October 5, 2025
-Updated: October 21, 2025
+Updated: October 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
-Framework header file : Include file for standard system include files, or project specific include files.
+Framework header file. Include file for standard system include files, or project specific include files.
 */
 
 #pragma once
@@ -20,8 +20,8 @@ Framework header file : Include file for standard system include files, or proje
 // Windows Headers
 #include <windows.h>
 #include <io.h>
-#include <conio.h>	// _getch()
-#include <lmcons.h>	// UNLEN and MAX_COMPUTERNAME_LENGTH
+#include <conio.h>			// _getch()
+#include <lmcons.h>			// UNLEN and MAX_COMPUTERNAME_LENGTH
 
 // C RunTime Headers
 #include <stdlib.h>
@@ -35,6 +35,7 @@ Framework header file : Include file for standard system include files, or proje
 
 // C++ Standard Library Headers
 #include <string>
+#include <string_view>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -49,6 +50,7 @@ Framework header file : Include file for standard system include files, or proje
 
 #include <chrono>
 #include <map>
+#include <unordered_map>
 #include <vector>
 #include <array>
 
