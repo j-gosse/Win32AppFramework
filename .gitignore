@@ -361,3 +361,24 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/Win32ApplicationFramework/lib/source/TestSuite/TestSuite.cpp
+/Win32ApplicationFramework/lib/source/TestSuite/TestSuite.cpp
+/Win32ApplicationFramework/lib/include/TestSuite/TestSuite.hpp
+/Win32ApplicationFramework/lib/include/TestSuite/test_macros.hpp
+/Win32ApplicationFramework/lib/source/TestSuite/tests/unit_tests.cpp
+/Win32ApplicationFramework/lib/include/utils/math_utils.hpp
+/Win32ApplicationFramework/lib/include/utils/string_utils.hpp
+/Win32ApplicationFramework/win32_utils.hpp
+/Win32ApplicationFramework/lib/source/TestSuite/tests/math_tests.cpp
+/Win32ApplicationFramework/string_tests.cpp
+/Win32ApplicationFramework/lib/source/TestSuite/tests/string_tests.cpp
+/Win32ApplicationFramework/container_utils.hpp
+/Win32ApplicationFramework/lib/include/utils/container_utils.hpp
+/Win32ApplicationFramework/time_utils.hpp
+/Win32ApplicationFramework/lib/include/utils/time_utils.hpp
+/Win32ApplicationFramework/lib/include/utils/time_utils.hpp
+/Win32ApplicationFramework/res/resource_script.rc
+/Win32ApplicationFramework/res/icons/small.ico
+/Win32ApplicationFramework/res/icons/primary.ico
+/Win32ApplicationFramework/stream_utils.hpp
+/Win32ApplicationFramework/lib/include/utils/stream_utils.hpp

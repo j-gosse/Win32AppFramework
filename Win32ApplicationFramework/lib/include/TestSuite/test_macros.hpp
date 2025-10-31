@@ -1,0 +1,82 @@
+/*!
+win32\TestSuite\test_macros.hpp
+Created: October 21, 2025
+Updated: October 26, 2025
+Copyright (c) 2025, Jacob Gosse
+
+Test Macros header file.
+
+\note
+Testing structure and utilization is based on how testing is handled with Boost, Doctest, Catch2, and other similar unit testing frameworks.
+*/
+
+#pragma once
+
+#ifndef TEST_MACROS_HPP_
+#define TEST_MACROS_HPP_
+
+#include "TestSuite.hpp"
+
+#define TEST_CASE(name, ...) \
+	static class TestCase_##name : public TestRegistry::TestCase {\
+	public: TestCase_##name() : TestCase(#name, __VA_ARGS__) { }\
+	public: virtual void Run() override;\
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define TEST_CASE_WEIGHTED(name, weight) \
+	static class TestCase_##name : public TestRegistry::TestCase { \
+	public: TestCase_##name() : TestCase(#name, weight) {} \
+	public: virtual void Run() override; \
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define TEST_CASE_PERCENTAGE(name, percent) \
+	static class TestCase_##name : public TestRegistry::TestCase { \
+	public: TestCase_##name() : TestCase(#name, percent) {} \
+	public: virtual void Run() override; \
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define TEST_CASE_GROUPED(name, group, weight) \
+	static class TestCase_##name : public TestRegistry::TestCase { \
+	public: TestCase_##name() : TestCase(#name, group, weight) {} \
+	public: virtual void Run() override; \
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define TEST_CASE_SECTIONED(name, group, section) \
+	static class TestCase_##name : public TestRegistry::TestCase { \
+	public: TestCase_##name() : TestCase(#name, group, section) {} \
+	public: virtual void Run() override; \
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define TEST_CASE_SECTIONED_WEIGHTED(name, group, section, weight) \
+	static class TestCase_##name : public TestRegistry::TestCase { \
+	public: TestCase_##name() : TestCase(#name, group, section, weight) {} \
+	public: virtual void Run() override; \
+	} TestCase_##name##_g; \
+	void TestCase_##name::Run()
+
+#define CHECK(condition) TestRegistry::CurrentCase(__FILE__,__LINE__)->Check((condition), #condition, __FILE__, __LINE__)
+
+#define DETAIL_CHECK_MESSAGE(condition,message,file,line) \
+	do { \
+		bool cond = (condition); \
+		std::string strMessage; \
+		if (!cond) { \
+			std::basic_ostringstream<char> oss; \
+			oss << message; \
+			strMessage = oss.str(); \
+		} \
+		TestRegistry::CurrentCase(__FILE__,__LINE__)->CheckMsg(cond, strMessage, file, line); \
+	} while(0)
+
+#define CHECK_MESSAGE(condition, message) DETAIL_CHECK_MESSAGE(condition, message, __FILE__, __LINE__)
+
+#define CHECK_EQUAL(testValue, expectedValue) TestRegistry::CurrentCase(__FILE__,__LINE__)->CheckEqual((testValue), (expectedValue), #testValue, #expectedValue, __FILE__, __LINE__)
+
+#define CHECK_WITHIN(testValue, expectedValue, minimum) TestRegistry::CurrentCase(__FILE__,__LINE__)->CheckWithin((testValue), (expectedValue), (minimum), #testValue, #expectedValue, #minimum, __FILE__, __LINE__)
+
+#endif
