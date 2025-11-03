@@ -1,13 +1,14 @@
 /*!
 lib\source\TestSuite\TestSuite.cpp
 Created: October 21, 2025
-Updated: October 30, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite source file.
 */
 
 #include <TestSuite/TestSuite.hpp>
+#include <win32/Console/ConsoleColor.hpp>
 #include <utils/string_utils.hpp>
 #include <utils/stream_utils.hpp>
 #include <utils/container_utils.hpp>
@@ -29,34 +30,34 @@ namespace winxframe
 
 	/* FUNCTION DEFINITIONS */
 
-	void TestRegistry::TestCase::Check(bool condition, const char* const conditionString)
+	void TestRegistry::TestCase::Check(bool condition, const char* const conditionString, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) TestCase::LogCheckFail(conditionString);
+		if (!condition) TestCase::LogCheckFail(conditionString, file, line);
 		else ++testsPassed_;
 	}
 
-	void TestRegistry::TestCase::Check(bool condition, const std::string& message)
+	void TestRegistry::TestCase::Check(bool condition, const std::string& message, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) TestCase::LogCheckFail(message);
+		if (!condition) TestCase::LogCheckFail(message, file, line);
 		else ++testsPassed_;
 	}
 
-	void TestRegistry::TestCase::LogCheckFail(const char* const conditionString) const noexcept
+	void TestRegistry::TestCase::LogCheckFail(const char* const conditionString, const char* const file, int line) const noexcept
 	{
 		std::ostringstream oss;
-		std::filesystem::path f = __FILE__;
-		oss << "File: " << f.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << ": " << conditionString << '\n';
+		std::filesystem::path f = file;
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ": " << conditionString << '\n';
 		std::cout << oss.str();
 		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
 	}
 
-	void TestRegistry::TestCase::LogCheckFail(const std::string& message) const noexcept
+	void TestRegistry::TestCase::LogCheckFail(const std::string& message, const char* const file, int line) const noexcept
 	{
 		std::ostringstream oss;
-		std::filesystem::path f = __FILE__;
-		oss << "File: " << f.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << " with message:" << message << '\n';
+		std::filesystem::path f = file;
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ", with custom message: " << message << '\n';
 		std::cout << oss.str();
 		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
 	}
@@ -184,10 +185,11 @@ namespace winxframe
 
 		oss.str().reserve(tableWidth * rowsTotal);
 
-		oss << std::string(tableWidth, '=') << '\n'
+		oss << console_color::BrightWhite
+			<< std::left
+			<< std::string(tableWidth, '=') << '\n'
 			<< "| " << string_utils::CenterText("UNIT TESTS REPORT", static_cast<int>(titleWidth)) << " |" << '\n'
 			<< std::string(tableWidth, '=') << '\n'
-			<< std::left
 			<< "| " << std::setw(numMaxGroupName) << "GROUP NAME"
 			<< " | " << std::setw(numMaxSectionName) << "SECTION NAME"
 			<< " | " << std::setw(numMaxCaseName) << "CASE NAME"
@@ -238,16 +240,24 @@ namespace winxframe
 					std::ostringstream strCaseElapsed;
 					strCaseElapsed << std::setprecision(1) << std::fixed << caseElapsed.time << ' ' << caseElapsed.unit;
 
-					oss << std::left
+					oss << console_color::BrightWhite
 						<< "| " << std::setw(numMaxGroupName) << (groupName.empty() ? "ungrouped" : groupName)
 						<< " | " << std::setw(numMaxSectionName) << (sectionName.empty() ? "default" : sectionName)
 						<< " | " << std::setw(numMaxCaseName) << testCase->GetCaseName()
 						<< " | " << std::setw(numMaxTests) << testCase->GetTestsPassed() << '/' << std::setw(numMaxTests) << testCase->GetTestsChecked()
 						<< " | " << std::setw(numMaxPercent) << strPercentage.str()
 						<< " | " << std::setw(numMaxWeight) << std::setprecision(1) << std::fixed << (ratio * testCase->GetCaseWeight()) << '/' << std::setw(numMaxWeight) << testCase->GetCaseWeight()
-						<< " | " << std::setw(numMaxStatus) << (passed ? "PASS" : "FAIL")
-						<< " | " << std::setw(numMaxTime) << strCaseElapsed.str()
-						<< " |" << "\n";
+						<< " | ";
+					std::cout << oss.str();
+					oss.str("");
+					oss.clear();
+
+					oss << (passed ? console_color::WhiteOnGreen : console_color::WhiteOnRed) << std::setw(numMaxStatus) << (passed ? "PASS" : "FAIL");
+					std::cout << oss.str();
+					oss.str("");
+					oss.clear();
+
+					oss << console_color::BrightWhite << " | " << std::setw(numMaxTime) << strCaseElapsed.str() << " |" << "\n";
 					std::cout << oss.str();
 					oss.str("");
 					oss.clear();
@@ -276,11 +286,12 @@ namespace winxframe
 		double checkPercentage{ 100.0 * testsPassed / std::max<std::uintmax_t>(1, testsChecked) };
 
 		oss << '\n' << "Total Running Time: " << std::setprecision(2) << std::fixed << totalElapsed.time << ' ' << totalElapsed.unit
-			<< '\n' << std::setprecision(1) << std::fixed << testsPassed << '/' << testsChecked << " tests passed (" << checkPercentage << "%)\n"
+			<< '\n' << std::setprecision(1) << std::fixed << testsPassed << '/' << testsChecked << " tests (" << checkPercentage << "%)\n"
 			<< casesPassed << '/' << casesTotal << " cases (" << std::setprecision(1) << std::fixed << (casesTotal ? 100.0 * casesPassed / casesTotal : 0.0) << "%)\n"
-			<< "Total Grade: " << score << " of " << maxScore << " (" << std::setprecision(1) << std::fixed << (maxScore > 0.0 ? score * 100 / maxScore : 0.0) << "%)\n";
+			<< score << " of " << maxScore << " (" << std::setprecision(1) << std::fixed << (maxScore > 0.0 ? score * 100 / maxScore : 0.0) << "%)\n";
 		std::cout << oss.str() << std::endl;
 		logFile_ << oss.str() << std::endl;
+		std::cout << console_color::Default;
 		oss.str("");
 		oss.clear();
 	}

@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\error_macros.hpp
 Created: October 11, 2025
-Updated: October 28, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error Macros header file.
@@ -21,38 +21,37 @@ namespace winxframe
 			Error error = Error(__FILE__, __func__, __LINE__);\
 			error.Log();\
 		} while(0)
-	#define LOG_ERROR_CTX(context) \
+	#define LOG_ERROR_CTX(context)\
 		do {\
-			Error error = Error(__FILE__, __func__, __LINE__, std::wstring(context));\
+			Error error = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
 			error.Log();\
 		} while(0)
-	#define LOG_IF_ERROR(result) \
+	#define LOG_IF_ERROR(result)\
 		do {\
 			if (!(result)) {\
 				Error error = Error(__FILE__, __func__, __LINE__);\
 				error.Log();\
 			}\
 		} while(0)
-	#define LOG_IF_ERROR_CTX(result, context) \
+	#define LOG_IF_ERROR_CTX(result, context)\
 		do {\
 			if (!(result)) {\
-				Error error = Error(__FILE__, __func__, __LINE__, std::wstring(context));\
+				Error error = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
 				error.Log();\
 			}\
 		} while(0)
 	
-	#define THROW_ERROR() \
-		do { throw Error(__FILE__, __func__, __LINE__); } while(0)
-	#define THROW_ERROR_CTX(context) \
-		do { throw Error(__FILE__, __func__, __LINE__, std::wstring(context)); } while(0)
-	#define THROW_IF_ERROR(result) \
-		do { if (!(result)) throw Error(__FILE__, __func__, __LINE__); } while(0)
-	#define THROW_IF_ERROR_CTX(result, context) \
-		do { if (!(result)) throw Error(__FILE__, __func__, __LINE__, std::wstring(context)); } while(0)
-	#define RETHROW_ERROR() \
-		do { throw Error(__FILE__, __func__, __LINE__, std::current_exception()); } while(0)
-	#define RETHROW_ERROR_CTX(context) \
-		do { throw Error(__FILE__, __func__, __LINE__, std::current_exception(), std::wstring(context)); } while(0)
+	#define THROW_ERROR() do { throw Error(__FILE__, __func__, __LINE__); } while(0)
+
+	#define THROW_ERROR_CTX(context) do { throw Error(std::wstring(context), __FILE__, __func__, __LINE__); } while(0)
+
+	#define THROW_IF_ERROR(result) do { if (!(result)) throw Error(__FILE__, __func__, __LINE__); } while(0)
+
+	#define THROW_IF_ERROR_CTX(result, context) do { if (!(result)) throw Error(std::wstring(context), __FILE__, __func__, __LINE__); } while(0)
+
+	#define RETHROW_ERROR() do { throw Error(std::current_exception(), __FILE__, __func__, __LINE__); } while(0)
+
+	#define RETHROW_ERROR_CTX(context) do { throw Error(std::wstring(context), std::current_exception(), __FILE__, __func__, __LINE__); } while(0)
 }; // end of namespace winxframe
 
 #endif

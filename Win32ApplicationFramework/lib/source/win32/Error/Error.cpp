@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: October 28, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -24,22 +24,22 @@ namespace winxframe
 		std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line)\n";
 	}
 
-	Error::Error(const char* file, const char* func, int line, const std::wstring& context) :
+	Error::Error(const std::wstring& context, const char* file, const char* func, int line) :
 		errorCode_(GetLastError()),
 		errorLevel_(Error::AssignErrorLevel()),
+		context_(context),
 		file_(string_utils::ToWide(file)),
 		func_(string_utils::ToWide(func)),
-		line_(line),
-		context_(context)
+		line_(line)
 	{
 		std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, const std::wstring& context)\n";
 	}
 
-	Error::Error(const char* file, const char* func, int line, std::exception_ptr cause) :
+	Error::Error(std::exception_ptr cause, const char* file, const char* func, int line) :
+		cause_(std::move(cause)),
 		file_(string_utils::ToWide(file)),
 		func_(string_utils::ToWide(func)),
-		line_(line),
-		cause_(std::move(cause))
+		line_(line)
 	{
 		std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, std::exception_ptr cause)\n";
 
@@ -67,12 +67,12 @@ namespace winxframe
 		errorLevel_ = Error::AssignErrorLevel();
 	}
 
-	Error::Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context) :
+	Error::Error(const std::wstring& context, std::exception_ptr cause, const char* file, const char* func, int line) :
+		context_(context),
+		cause_(std::move(cause)),
 		file_(string_utils::ToWide(file)),
 		func_(string_utils::ToWide(func)),
-		line_(line),
-		cause_(std::move(cause)),
-		context_(context)
+		line_(line)
 	{
 		std::wcout << L"CONSTRUCTOR: Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context)\n";
 

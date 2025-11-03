@@ -1,32 +1,75 @@
 /*!
-lib\include\win32\Console\ColorAttribute.hpp
+lib\include\win32\Console\ConsoleColor.hpp
 Created: November 1, 2025
 Updated: November 1, 2025
 Copyright (c) 2025, Jacob Gosse
 
-Color Attributes header file.
+Console Color header file.
 */
 
 #pragma once
 
-#ifndef COLORATTRIBUTE_HPP_
-#define COLORATTRIBUTE_HPP_
+#ifndef CONSOLECOLOR_HPP_
+#define CONSOLECOLOR_HPP_
 
+#include <windows.h>
+#include <ostream>
 #include <cstdint>
 
-struct ColorAttribute
+namespace winxframe
 {
-private:
-	uint8_t red;
-	uint8_t green;
-	uint8_t blue;
-	uint8_t alpha;
+    class ConsoleColor
+    {
+    private:
+        uint8_t foreground_;
+        uint8_t background_;
 
-public:
-	constexpr ColorAttribute(uint8_t r = 0, uint8_t g = 0, uint8_t b = 0, uint8_t a = 255)
-		: red(r), green(g), blue(b), alpha(a) {}
-};
+    public:
+        constexpr ConsoleColor(uint8_t fg = ConsoleColor::WHITE, uint8_t bg = ConsoleColor::BLACK) 
+            : foreground_(fg), background_(bg) {}
 
-constexpr ColorAttribute Red(255, 0, 0);
+        constexpr WORD ToWord() const { return (WORD)(foreground_ | (background_ << 4)); }
+
+        static constexpr WORD BLACK = 0;
+        static constexpr WORD BLUE = 1;
+        static constexpr WORD GREEN = 2;
+        static constexpr WORD CYAN = 3;
+        static constexpr WORD RED = 4;
+        static constexpr WORD MAGENTA = 5;
+        static constexpr WORD YELLOW = 6;
+        static constexpr WORD WHITE = 7;
+        static constexpr WORD BRIGHT = 8;
+
+        static constexpr WORD BRIGHT_BLACK = BLACK | BRIGHT;
+        static constexpr WORD BRIGHT_BLUE = BLUE | BRIGHT;
+        static constexpr WORD BRIGHT_GREEN = GREEN | BRIGHT;
+        static constexpr WORD BRIGHT_CYAN = CYAN | BRIGHT;
+        static constexpr WORD BRIGHT_RED = RED | BRIGHT;
+        static constexpr WORD BRIGHT_MAGENTA = MAGENTA | BRIGHT;
+        static constexpr WORD BRIGHT_YELLOW = YELLOW | BRIGHT;
+        static constexpr WORD BRIGHT_WHITE = WHITE | BRIGHT;
+    };
+
+    namespace console_color
+    {
+        constexpr ConsoleColor Default(ConsoleColor::WHITE, ConsoleColor::BLACK);
+        constexpr ConsoleColor BrightWhite(ConsoleColor::BRIGHT_WHITE, ConsoleColor::BLACK);
+
+        constexpr ConsoleColor WhiteOnRed(ConsoleColor::BRIGHT_WHITE, ConsoleColor::RED);
+        constexpr WORD WHITE_ON_RED = WhiteOnRed.ToWord();
+
+        constexpr ConsoleColor WhiteOnGreen(ConsoleColor::BRIGHT_WHITE, ConsoleColor::GREEN);
+        constexpr WORD WHITE_ON_GREEN = WhiteOnGreen.ToWord();
+    }
+
+    // output operator
+    inline std::ostream& operator<<(std::ostream& os, const ConsoleColor& color)
+    {
+        HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+        SetConsoleTextAttribute(hConsole, color.ToWord());
+        return os;
+    }
+
+}; // end of namespace winxframe
 
 #endif

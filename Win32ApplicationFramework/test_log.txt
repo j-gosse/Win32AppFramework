@@ -19,8 +19,8 @@
   1.0	1.0	Math Tests	Summation	ut_math_19
   1.0	1.0	String Tests		ut_string_01
 
-Total Running Time: 2.20 ms
-81224/81224 tests passed (100.0%)
+Total Running Time: 1.93 ms
+81236/81236 tests (100.0%)
 20/20 cases (100.0%)
-Total Grade: 20.0 of 20.0 (100.0%)
+20.0 of 20.0 (100.0%)
 

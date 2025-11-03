@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: October 28, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -171,7 +171,7 @@ namespace winxframe
 		/**
 		* @brief	Window Destructor.
 		*/
-		virtual ~Window();
+		~Window();
 
 		/**
 		* @brief	Process queued messages sent to the window. If wMsgFilterMin and wMsgFilterMax are both zero,

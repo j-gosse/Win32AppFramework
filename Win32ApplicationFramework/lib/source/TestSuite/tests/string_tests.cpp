@@ -1,7 +1,7 @@
 /*!
 lib\source\TestSuite\tests\string_tests.cpp
 Created: October 27, 2025
-Updated: October 28, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 String Tests source file.
@@ -14,12 +14,12 @@ namespace winxframe
 {
 	TEST_CASE(ut_string_01, "String Tests")
 	{
-		static std::array<std::string const, 13> const names1 = {
+		static std::array<const std::string, 13> const names1 = {
 			"",
 			"January", "February", "March", "April", "May", "June", "July",
 			"August", "September", "October", "November", "December"
 		};
-		static std::array<std::string const, 13> const names2 = {
+		static std::array<const std::string, 13> const names2 = {
 			"",
 			"January", "February", "March", "April", "May", "June", "July",
 			"August", "September", "October", "November", "December"
@@ -28,6 +28,13 @@ namespace winxframe
 		for (int i = 1; i <= 12; ++i)
 		{
 			CHECK(names1[i] == names2[i]);
+		}
+
+		// check with std::string::compare
+		for (int i = 1; i <= 12; ++i)
+		{
+			int result = names1[i].compare(names2[i]);
+			CHECK(result == 0);
 		}
 	}
 }; // end of namespace winxframe

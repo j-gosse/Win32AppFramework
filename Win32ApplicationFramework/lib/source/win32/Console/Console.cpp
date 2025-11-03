@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Console\Console.cpp
 Created: October 5, 2025
-Updated: October 28, 2025
+Updated: November 1, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console source file.
@@ -17,31 +17,28 @@ namespace winxframe
         hInstance_(GetModuleHandleW(nullptr))
     {
         OutputDebugStringW(L"CONSTRUCTOR: Console()\n");
-
-        if (!consoleAllocated_)
-        {
-            OutputDebugStringW(L"Failed to allocate console!");
-            OutputDebugStringW(L"Attempting to attach console from parent process...");
-            if (!AttachConsole(ATTACH_PARENT_PROCESS))
-            {
-                throw std::runtime_error("Failed to attach console!");
-            }
-        }
-
-        if (hConsoleWindow_ == nullptr)
-        {
-            throw std::runtime_error("Failed to retrieve the console window!");
-        }
-
-        Console::SetTitle(L"CONSOLE");
-        Console::RedirectStdIO();
+        Console::Init();
     }
 
     Console::Console(HINSTANCE hInstance) :
         hInstance_(hInstance)
     {
         OutputDebugStringW(L"CONSTRUCTOR: Console(HINSTANCE hInstance)\n");
+        Console::Init();
+    }
 
+    /* DESTRUCTOR */
+
+    Console::~Console()
+    {
+        OutputDebugStringW(L"DESTRUCTOR: ~Console()\n");
+        Console::Cleanup();
+    }
+
+    /* FUNCTION DEFINITIONS */
+
+    void Console::Init() const
+    {
         if (!consoleAllocated_)
         {
             OutputDebugStringW(L"Failed to allocate console!");
@@ -61,20 +58,9 @@ namespace winxframe
         Console::RedirectStdIO();
     }
 
-    /* DESTRUCTOR */
-
-    Console::~Console()
+    void Console::WriteOutput(const std::span<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const
     {
-        std::wcout << L"DESTRUCTOR: ~Console()\n";
-        OutputDebugStringW(L"DESTRUCTOR: ~Console()\n");
-        Console::Cleanup();
-    }
-
-    /* FUNCTION DEFINITIONS */
-
-    void Console::WriteOutput(std::span<CHAR_INFO> const& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const
-    {
-        if (!WriteConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &writeRegion))
+        if (!WriteConsoleOutputW(GetOutputHandle(), buffer.data(), bufferSize, bufferCoord, &writeRegion))
         {
             throw std::runtime_error("WriteConsoleOutputW failed.");
         }
@@ -85,7 +71,7 @@ namespace winxframe
         std::size_t newBufferSize = static_cast<std::size_t>(bufferSize.X) * bufferSize.Y;
         if (buffer.size() < newBufferSize) buffer.resize(newBufferSize);
 
-        if (!ReadConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &readRegion))
+        if (!ReadConsoleOutputW(GetOutputHandle(), buffer.data(), bufferSize, bufferCoord, &readRegion))
         {
             throw std::runtime_error("ReadConsoleOutputW failed.");
         }
@@ -98,7 +84,7 @@ namespace winxframe
         inputEvents.resize(maxEvents);
 
         DWORD numEventsRead{};
-        if (!ReadConsoleInputW(hConsoleInput_, inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead))
+        if (!ReadConsoleInputW(GetOutputHandle(), inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead))
         {
             throw std::runtime_error("ReadConsoleInputW failed with error : " + std::to_string(GetLastError()));
         }
@@ -106,74 +92,7 @@ namespace winxframe
         return numEventsRead;
     }
 
-    void Console::GetScreenBufferInfoEx(CONSOLE_SCREEN_BUFFER_INFOEX& csbix) const
-    {
-        csbix.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
-        if (!GetConsoleScreenBufferInfoEx(hConsoleOutput_, &csbix))
-        {
-            throw std::runtime_error("GetConsoleScreenBufferInfo failed.");
-        }
-    }
-    CONSOLE_SCREEN_BUFFER_INFOEX Console::GetScreenBufferInfoEx() const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix{};
-        csbix.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
-        Console::GetScreenBufferInfoEx(csbix);
-        return csbix;
-    }
-
-    const SHORT Console::GetScreenBufferWidth() const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix = Console::GetScreenBufferInfoEx();
-        return csbix.dwSize.X;
-
-    }
-    const SHORT Console::GetScreenBufferHeight() const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix = Console::GetScreenBufferInfoEx();
-        return csbix.dwSize.Y;
-    }
-
-    void Console::SetTitle(const wchar_t* title) const
-    {
-        WCHAR titleBuffer[MAX_LOADSTRING]{};
-        if (title && *title) wcsncpy_s(titleBuffer, title, MAX_LOADSTRING - 1);
-        else LoadStringW(hInstance_, IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
-        if (hConsoleWindow_) SetConsoleTitleW(titleBuffer);
-    }
-
-    void Console::SetCursorPosition(COORD cursorPos) const
-    {
-        if (!SetConsoleCursorPosition(hConsoleOutput_, cursorPos))
-        {
-            throw std::runtime_error("SetConsoleCursorPosition failed.");
-        }
-    }
-    COORD Console::GetCursorPosition() const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix = Console::GetScreenBufferInfoEx();
-        return csbix.dwCursorPosition;
-    }
-
-    void Console::SetTextAttributes(std::vector<CHAR_INFO>& buffer, WORD attribs) const
-    {
-        for (CHAR_INFO& ch : buffer)
-            ch.Attributes = attribs;
-    }
-    void Console::GetTextAttributes(WORD& attribs) const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix{ 0 };
-        Console::GetScreenBufferInfoEx(csbix);
-        attribs = csbix.wAttributes;
-    }
-    WORD Console::GetTextAttributes() const
-    {
-        CONSOLE_SCREEN_BUFFER_INFOEX csbix{ 0 };
-        Console::GetScreenBufferInfoEx(csbix);
-        return csbix.wAttributes;
-    }
-
-    void Console::InitBuffer(std::vector<CHAR_INFO>& buffer, std::wstring const& text) const
+    void Console::InitBuffer(std::vector<CHAR_INFO>& buffer, const std::wstring& text) const
     {
         buffer.resize(text.size());
 
@@ -183,7 +102,7 @@ namespace winxframe
         }
     }
 
-    ConsoleWriteRegion Console::CreateWriteRegion(std::wstring const& text, COORD writePos, std::optional<WORD> attribs) const
+    ConsoleWriteRegion Console::CreateWriteRegion(const std::wstring& text, COORD writePos, std::optional<WORD> attribs) const
     {
         WORD attributes = attribs.value_or(Console::GetTextAttributes());
 
@@ -215,8 +134,8 @@ namespace winxframe
             size_t chunkLength = std::min<size_t>(lineLength - chunkStartIndex, columnsRemaining);
             std::wstring currentChunk = line.substr(chunkStartIndex, chunkLength);
 
-            ConsoleWriteRegion writeRegion = CreateWriteRegion(currentChunk, cursorPos, attribs);
-            WriteOutput(writeRegion.buffer, writeRegion.bufferSize, writeRegion.bufferCoord, writeRegion.writeRegion);
+            ConsoleWriteRegion writeRegion = Console::CreateWriteRegion(currentChunk, cursorPos, attribs);
+            Console::WriteOutput(writeRegion.buffer, writeRegion.bufferSize, writeRegion.bufferCoord, writeRegion.writeRegion);
 
             chunkStartIndex += chunkLength;
             cursorPos.X += static_cast<SHORT>(chunkLength);
@@ -229,14 +148,13 @@ namespace winxframe
         }
     }
 
-    void Console::WriteText(std::wstring const& text, std::optional<WORD> attribs) const
+    void Console::WriteText(const std::wstring& text, std::optional<WORD> attribs) const
     {
-        if (text.empty())
-            return;
+        if (text.empty()) return;
 
-        const SHORT screenBufferWidth = GetScreenBufferWidth();
-        WORD attributes = attribs.value_or(GetTextAttributes());
-        COORD cursor = GetCursorPosition();
+        const SHORT screenBufferWidth = Console::GetScreenBufferWidth();
+        WORD attributes = attribs.value_or(Console::GetTextAttributes());
+        COORD cursor = Console::GetCursorPosition();
 
         std::wstringstream ss(text);
         std::wstring line;
@@ -344,14 +262,34 @@ namespace winxframe
         FILE* dummyStream = nullptr;
 
         freopen_s(&dummyStream, "CONOUT$", "w", stdout);
-        std::wcout.clear();
         std::cout.clear();
+        std::wcout.clear();
 
         freopen_s(&dummyStream, "CONOUT$", "w", stderr);
         std::cerr.clear();
+        std::wcerr.clear();
 
         freopen_s(&dummyStream, "CONIN$", "r", stdin);
         std::cin.clear();
+    }
+
+    CONSOLE_SCREEN_BUFFER_INFOEX Console::GetScreenBufferInfo() const
+    {
+        CONSOLE_SCREEN_BUFFER_INFOEX csbix{};
+        csbix.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
+        if (!GetConsoleScreenBufferInfoEx(GetOutputHandle(), &csbix))
+        {
+            throw std::runtime_error("GetConsoleScreenBufferInfo failed.");
+        }
+        return csbix;
+    }
+
+    void Console::SetTitle(const wchar_t* title) const
+    {
+        WCHAR titleBuffer[MAX_LOADSTRING]{};
+        if (title && *title) wcsncpy_s(titleBuffer, title, MAX_LOADSTRING - 1);
+        else LoadStringW(hInstance_, IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
+        if (hConsoleWindow_) SetConsoleTitleW(titleBuffer);
     }
 
     void Console::Cleanup()

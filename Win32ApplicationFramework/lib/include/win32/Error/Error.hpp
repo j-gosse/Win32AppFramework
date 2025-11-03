@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\Error.hpp
 Created: October 9, 2025
-Updated: October 28, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error header file.
@@ -40,9 +40,9 @@ namespace winxframe
 
 	public:
 		Error(const char* file, const char* func, int line);
-		Error(const char* file, const char* func, int line, const std::wstring& context);
-		Error(const char* file, const char* func, int line, std::exception_ptr cause);
-		Error(const char* file, const char* func, int line, std::exception_ptr cause, const std::wstring& context);
+		Error(const std::wstring& context, const char* file, const char* func, int line);
+		Error(std::exception_ptr cause, const char* file, const char* func, int line);
+		Error(const std::wstring& context, std::exception_ptr cause, const char* file, const char* func, int line);
 		virtual ~Error();
 
 		void Log() const;

@@ -1,7 +1,7 @@
 /*!
 lib\include\TestSuite\test_macros.hpp
 Created: October 21, 2025
-Updated: October 30, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Macros header file.
@@ -16,13 +16,17 @@ Test Macros header file.
 
 namespace winxframe
 {
-	#define CHECK(condition) TestRegistry::CurrentCase()->Check((condition), #condition)
+	#define CHECK(condition)\
+		TestRegistry::CurrentCase()->Check((condition), #condition, __FILE__, __LINE__)
 
-	#define MSG_CHECK(condition, message) TestRegistry::CurrentCase()->Check((condition), #message)
+	#define MSG_CHECK(condition, message)\
+		TestRegistry::CurrentCase()->Check((condition), std::string(message), __FILE__, __LINE__)
 
-	#define CHECK_EQUAL(testValue, expectedValue) TestRegistry::CurrentCase()->CheckEqual((testValue), (expectedValue), #testValue, #expectedValue)
+	#define CHECK_EQUAL(testValue, expectedValue)\
+		TestRegistry::CurrentCase()->CheckEqual((testValue), (expectedValue), #testValue, #expectedValue, __FILE__, __LINE__)
 
-	#define CHECK_WITHIN(testValue, expectedValue, minimum) TestRegistry::CurrentCase()->CheckWithin((testValue), (expectedValue), (minimum), #testValue, #expectedValue, #minimum)
+	#define CHECK_WITHIN(testValue, expectedValue, minimum)\
+		TestRegistry::CurrentCase()->CheckWithin((testValue), (expectedValue), (minimum), #testValue, #expectedValue, #minimum, __FILE__, __LINE__)
 
 	#define TEST_CASE(name, ...)\
 		static class TestCase_##name : public TestRegistry::TestCase {\

@@ -1,13 +1,13 @@
 /*! \project    Win32ApplicationFramework
     \file       lib\source\win32\win32_platform.cpp
-    \version    PRE-ALPHA 1.7
+    \version    PRE-ALPHA 1.8
     \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality 
                 for console and window creation, message loops, and error handling. 
                 Includes a suite for unit testing and various helper utilities. 
                 Ideal as a foundation for GUI apps, game engines, debug utils, etc.
     \author     Jacob Gosse
     \created    October 5, 2025
-    \updated    October 30, 2025
+    \updated    November 2, 2025
 
     \MSVC       /std:c++20
     \GNUC       -m64 -std=c++20
@@ -60,18 +60,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         try
         {
             // console test
-            /*
             console->WriteText(L"This is a really really really really really really really really long line that if necessary will be written across multiple lines based on the width of the console buffer. Does not wrap words.");
-            console->WriteText(L"gggg", static_cast<WORD>(FOREGROUND_RED));
-            console->WriteText(L"1111");
+            console->WriteText(L"gggg", ConsoleColor::RED);
+            console->WriteText(L"1111", ConsoleColor::BRIGHT_RED);
             console->WriteText(L"gggg");
             console->WriteText(L"gggg\n\n\n\n");
-            console->WriteText(L"gggg", static_cast<WORD>(0x0003));
-            console->WriteText(L"gggg");
+            console->WriteText(L"gggg", console_color::WHITE_ON_RED);
+            console->WriteText(L"gggg", ConsoleColor::BRIGHT_WHITE);
             console->WriteText(L"1111\n");
-            console->WriteText(L"gggg\n");
-            */
-
+            console->WriteText(L"gggg\n", console_color::WHITE_ON_GREEN);
+            std::cout << console_color::WhiteOnRed << "cout stream color test 1\n" << console_color::Default;
+            std::cout << console_color::WhiteOnGreen << "cout stream color test 1\n" << console_color::Default;
+            
             // error test
             /*
             throw std::runtime_error("Runtime error test.");

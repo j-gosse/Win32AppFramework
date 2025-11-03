@@ -142,6 +142,7 @@
     <ClInclude Include="lib\include\utils\string_utils.hpp" />
     <ClInclude Include="lib\include\utils\time_utils.hpp" />
     <ClInclude Include="lib\include\win32\Console\Console.hpp" />
+    <ClInclude Include="lib\include\win32\Console\ConsoleColor.hpp" />
     <ClInclude Include="lib\include\win32\debug.h" />
     <ClInclude Include="lib\include\win32\Error\Error.hpp" />
     <ClInclude Include="lib\include\win32\Error\ErrorLevel.hpp" />
@@ -167,6 +168,10 @@
   <ItemGroup>
     <Image Include="lib\source\win32\res\icons\primary.ico" />
     <Image Include="lib\source\win32\res\icons\small.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\CHANGELOG.md" />
+    <None Include="..\README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

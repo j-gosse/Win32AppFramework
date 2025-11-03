@@ -1,7 +1,7 @@
 /*!
 lib\include\utils\math_utils.hpp
 Created: October 24, 2025
-Updated: October 30, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Math Utilities header file.
@@ -359,18 +359,20 @@ namespace winxframe
 
     #pragma region SEQUENCE/RECURRENCE
         /* Computes the n-th Fibonacci number */
-        [[nodiscard]] constexpr unsigned long long Fibonacci(int n) noexcept
+        [[nodiscard]] constexpr unsigned long long Fibonacci(const int n) noexcept
         {
-            // Derived from Binet's formula: F(n) ~ (phi^n) / sqrt(5), where phi approx. 1.618
+            // Derived from Binet's formula: F(n) = (phi^(n)-(-phi)^(-n)) / sqrt(5), where phi approx. 1.618
             // F(94) = 19,740,274,219,868,223,167 > ULLONG_MAX
             assert(n >= 0 && n <= 93 && "Fibonacci: n >= F(0) && n <= F(93)");
-            if (n < 0 || n > 93) return 0;
+            //if (n < 0 || n > 93) return 0;
+            if (n < 2) return n;
             unsigned long long a = 0, b = 1;
-            for (int i = 0; i < n; ++i)
+            for (int i = 2; i <= n; ++i)
             {
-                a = Exchange(b, a + b);
+                b += a;     // add previous value directly
+                a = b - a;  // recalculate previous value without temp
             }
-            return a;
+            return b;
         }
 
         /* Computes the sum of the first n natural numbers (int) */

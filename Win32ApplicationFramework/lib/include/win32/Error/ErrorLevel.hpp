@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\ErrorLevel.hpp
 Created: October 11, 2025
-Updated: October 28, 2025
+Updated: November 1, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error Level header file.
@@ -14,7 +14,7 @@ Error Level header file.
 
 namespace winxframe
 {
-	enum class ErrorLevel
+	enum struct ErrorLevel
 	{
 		Info,
 		Warning,

@@ -1,7 +1,7 @@
 /*!
 lib\include\TestSuite\TestSuite.hpp
 Created: October 21, 2025
-Updated: October 30, 2025
+Updated: November 2, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite header file.
@@ -47,18 +47,18 @@ namespace winxframe
 			TestCase(const std::string& name, const std::string& group, double weight) : TestCase(name, group, defaultSectionName_, weight) {}
 			virtual ~TestCase() = default;
 
-			void Check(bool condition, const char* const conditionString);
-			void Check(bool condition, const std::string& message);
+			void Check(bool condition, const char* const conditionString, const char* const file, int line);
+			void Check(bool condition, const std::string& message, const char* const file, int line);
 			template <typename LHS, typename RHS>
-			void CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString);
+			void CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line);
 			template <typename LHS, typename RHS, typename Value>
-			void CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString);
-			void LogCheckFail(const char* const conditionString) const noexcept;
-			void LogCheckFail(const std::string& message) const noexcept;
+			void CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line);
+			void LogCheckFail(const char* const conditionString, const char* const file, int line) const noexcept;
+			void LogCheckFail(const std::string& message, const char* const file, int line) const noexcept;
 			template <typename LHS, typename RHS>
-			void LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString) const noexcept;
+			void LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line) const noexcept;
 			template <typename LHS, typename RHS, typename Value>
-			void LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString) const noexcept;
+			void LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line) const noexcept;
 			virtual void Run() = 0;
 
 			const std::string& GetCaseName() const noexcept { return caseName_; }
@@ -84,45 +84,45 @@ namespace winxframe
 
 	public:
 		TestRegistry();
-		virtual ~TestRegistry();
+		~TestRegistry();
 		static void RunAll();
 		static TestCase* CurrentCase();
 	};
 
 	template <typename LHS, typename RHS>
-	void TestRegistry::TestCase::CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString)
+	void TestRegistry::TestCase::CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!(lhs == rhs)) TestRegistry::TestCase::LogCheckEqualFail(lhs, rhs, lhsString, rhsString);
+		if (!(lhs == rhs)) TestRegistry::TestCase::LogCheckEqualFail(lhs, rhs, lhsString, rhsString, file, line);
 		else ++testsPassed_;
 	}
 
 	template <typename LHS, typename RHS, typename Value>
-	void TestRegistry::TestCase::CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString)
+	void TestRegistry::TestCase::CheckWithin(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line)
 	{
 		bool condition = std::abs((lhs)-(rhs)) <= std::abs(min);
 		++testsChecked_;
-		if (!condition) TestRegistry::TestCase::LogCheckWithinFail(lhs, rhs, min, lhsString, rhsString, minString);
+		if (!condition) TestRegistry::TestCase::LogCheckWithinFail(lhs, rhs, min, lhsString, rhsString, minString, file, line);
 		else ++testsPassed_;
 	}
 
 	template <typename LHS, typename RHS>
-	void TestRegistry::TestCase::LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString) const noexcept
+	void TestRegistry::TestCase::LogCheckEqualFail(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line) const noexcept
 	{
 		std::ostringstream oss;
-		std::filesystem::path file = __FILE__;
-		oss << "File: " << file.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << "\": "
+		std::filesystem::path f = file;
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ": "
 			<< "\"" << lhsString << "\" [" << lhs << "] != \"" << rhsString << "\" [" << rhs << "]\n";
 		std::cout << oss.str();
 		if (logFile_.is_open()) logFile_ << oss.str();
 	}
 
 	template <typename LHS, typename RHS, typename Value>
-	void TestRegistry::TestCase::LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString) const noexcept
+	void TestRegistry::TestCase::LogCheckWithinFail(const LHS& lhs, const RHS& rhs, const Value& min, const char* lhsString, const char* rhsString, const char* minString, const char* const file, int line) const noexcept
 	{
 		std::ostringstream oss;
-		std::filesystem::path file = __FILE__;
-		oss << "File: " << file.filename().string() << "Line: " << __LINE__ << "Check failed in " << TestCase::GetCaseName() << "\": "
+		std::filesystem::path f = file;
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ": "
 			<< "difference(" << lhsString << ", " << rhsString << ") > " << minString << " ==> \t|" << lhs << " - " << rhs << "| > " << std::abs(min) << '\n';
 		std::cout << oss.str();
 		if (logFile_.is_open()) logFile_ << oss.str();
