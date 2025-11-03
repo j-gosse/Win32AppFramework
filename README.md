@@ -9,4 +9,6 @@ for console and window creation, message loops, and error handling.
 Includes a suite for unit testing and various helper utilities. 
 Ideal as a foundation for GUI apps, game engines, debug utils, etc.
 
-Copyright (c) 2025
+[CLICK HERE to view the full change log.](CHANGELOG.md)
+
+Copyright (c) 2025  
