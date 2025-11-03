@@ -382,3 +382,10 @@ FodyWeavers.xsd
 /Win32ApplicationFramework/res/icons/primary.ico
 /Win32ApplicationFramework/stream_utils.hpp
 /Win32ApplicationFramework/lib/include/utils/stream_utils.hpp
+/Win32ApplicationFramework/ColorAttributes.hpp
+/Win32ApplicationFramework/ColorAttributes.cpp
+/Win32ApplicationFramework/lib/source/win32/Console/ColorAttributes.cpp
+/Win32ApplicationFramework/lib/include/win32/Console/ColorAttributes.hpp
+/Win32ApplicationFramework/lib/include/win32/Console/ColorAttribute.hpp
+/CHANGELOG.md
+/CHANGELOG.md
