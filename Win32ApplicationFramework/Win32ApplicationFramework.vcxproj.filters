@@ -131,6 +131,9 @@
     <ClInclude Include="lib\include\win32\Console\ConsoleColor.hpp">
       <Filter>Header Files\lib\win32\Console</Filter>
     </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\HidUsage.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\source\win32\win32_platform.cpp">

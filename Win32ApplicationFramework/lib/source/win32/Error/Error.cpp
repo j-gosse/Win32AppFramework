@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: November 2, 2025
+Updated: November 8, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -16,7 +16,7 @@ namespace winxframe
 
 	Error::Error(const char* file, const char* func, int line) :
 		errorCode_(GetLastError()),
-		errorLevel_(Error::AssignErrorLevel()),
+		errorLevel_(this->AssignErrorLevel()),
 		file_(string_utils::ToWide(file)),
 		func_(string_utils::ToWide(func)),
 		line_(line)
@@ -26,7 +26,7 @@ namespace winxframe
 
 	Error::Error(const std::wstring& context, const char* file, const char* func, int line) :
 		errorCode_(GetLastError()),
-		errorLevel_(Error::AssignErrorLevel()),
+		errorLevel_(this->AssignErrorLevel()),
 		context_(context),
 		file_(string_utils::ToWide(file)),
 		func_(string_utils::ToWide(func)),
@@ -45,17 +45,19 @@ namespace winxframe
 
 		try
 		{
-			if (cause_)
+			if (this->GetCause())
 			{
-				std::rethrow_exception(cause_);
+				std::rethrow_exception(this->GetCause());
 			}
 		}
 		catch (const Error& nestedError)
 		{
 			errorCode_ = nestedError.GetErrorCode();
 			errorLevel_ = nestedError.AssignErrorLevel();
-			if (context_.empty()) context_ = nestedError.GetContext();
-			else if (!nestedError.GetContext().empty()) context_ = nestedError.GetContext() + L" | " + context_;
+			if (this->GetContext().empty())
+				context_ = nestedError.GetContext();
+			else if (!nestedError.GetContext().empty())
+				context_ = nestedError.GetContext() + L" | " + this->GetContext();
 			return;
 		}
 		catch (...)
@@ -64,7 +66,7 @@ namespace winxframe
 		}
 
 		errorCode_ = GetLastError();
-		errorLevel_ = Error::AssignErrorLevel();
+		errorLevel_ = this->AssignErrorLevel();
 	}
 
 	Error::Error(const std::wstring& context, std::exception_ptr cause, const char* file, const char* func, int line) :
@@ -78,17 +80,19 @@ namespace winxframe
 
 		try
 		{
-			if (cause_)
+			if (this->GetCause())
 			{
-				std::rethrow_exception(cause_);
+				std::rethrow_exception(this->GetCause());
 			}
 		}
 		catch (const Error& nestedError)
 		{
 			errorCode_ = nestedError.GetErrorCode();
 			errorLevel_ = nestedError.AssignErrorLevel();
-			if (context_.empty()) context_ = nestedError.GetContext();
-			else if (!nestedError.GetContext().empty()) context_ = nestedError.GetContext() + L" | " + context_;
+			if (this->GetContext().empty())
+				context_ = nestedError.GetContext();
+			else if (!nestedError.GetContext().empty())
+				context_ = nestedError.GetContext() + L" | " + this->GetContext();
 			return;
 		}
 		catch (...)
@@ -97,7 +101,7 @@ namespace winxframe
 		}
 
 		errorCode_ = GetLastError();
-		errorLevel_ = Error::AssignErrorLevel();
+		errorLevel_ = this->AssignErrorLevel();
 	}
 
 	/* DESTRUCTOR */
@@ -113,13 +117,14 @@ namespace winxframe
 	std::wstring Error::Message() const
 	{
 		std::wostringstream woss;
-		woss << L"Code: " << Error::GetErrorCode() << L'\n';
-		woss << L"Level: " << Error::ErrorLevelToString(Error::GetErrorLevel()) << L'\n';
-		if (!Error::GetContext().empty()) woss << L"Context: " << Error::GetContext() << L'\n';
-		woss << L"Error: " << Error::BuildErrorMessage(Error::GetErrorCode()) << L'\n';
-		woss << L"File: " << Error::GetFile() << L'\n';
-		woss << L"Func: " << Error::GetFunc() << L'\n';
-		woss << L"Line: " << Error::GetLine() << L'\n';
+		if (!this->GetContext().empty())
+			woss << L"Context: " << this->GetContext() << L'\n';
+		woss << L"Code: " << this->GetErrorCode() << L'\n';
+		woss << L"Level: " << this->ErrorLevelToString(this->GetErrorLevel()) << L'\n';
+		woss << L"Error: " << this->BuildErrorMessage(this->GetErrorCode()) << L'\n';
+		woss << L"File: " << this->GetFile() << L'\n';
+		woss << L"Func: " << this->GetFunc() << L'\n';
+		woss << L"Line: " << this->GetLine() << L'\n';
 		return woss.str();
 	}
 
@@ -131,19 +136,17 @@ namespace winxframe
 
 	std::string Error::BuildWhat() const
 	{
-		return string_utils::ToNarrow(Error::Message());
+		return string_utils::ToNarrow(this->Message());
 	}
 
 	std::wstring Error::BuildWWhat() const
 	{
-		return Error::Message();
+		return this->Message();
 	}
 
 	ErrorLevel Error::AssignErrorLevel() const
 	{
-		HRESULT errorCode = Error::GetErrorCode();
-
-		switch (errorCode)
+		switch (this->GetErrorCode())
 		{
 		case S_OK:						// Operation was successful
 		case S_FALSE:					// Operation was successful, but condition was false
@@ -207,27 +210,37 @@ namespace winxframe
 		switch (errorLevel)
 		{
 		case ErrorLevel::Info:
-			return L"Info Error";
+			return L"Info";
 		case ErrorLevel::Warning:
-			return L"Warning Error";
+			return L"Warning";
 		case ErrorLevel::General:
-			return L"General Error";
+			return L"General";
 		case ErrorLevel::Critical:
-			return L"Critical Error";
+			return L"Critical";
 		case ErrorLevel::Fatal:
-			return L"Fatal Error";
+			return L"Fatal";
 		default:
-			return L"Unknown Error";
+			return L"Unknown";
 		}
 	}
 
 	void Error::Log() const
 	{
-		std::wcout << L"LOGGED ERROR:\n" << Error::Message() << L'\n';
-		std::wstring causeChain = Error::LogCauseChain();
+		std::wostringstream woss;
+		woss << L"LOGGED ERROR:\n" << this->Message() << L'\n';
+		std::wcout << woss.str();
+		OutputDebugStringW(woss.str().c_str());
+		woss.str(L"");
+		woss.clear();
+
+		std::wstring causeChain = this->LogCauseChain();
+		woss << L"CAUSE CHAIN:\n" << std::wstring(causeChain.begin(), causeChain.end());
 		if (!causeChain.empty())
 		{
-			std::wcout << L"CAUSE CHAIN:\n" << std::wstring(causeChain.begin(), causeChain.end());
+			std::wcout << woss.str();
+			OutputDebugStringW(woss.str().c_str());
+			woss.str(L"");
+			woss.clear();
 		}
 	}
 
@@ -236,8 +249,8 @@ namespace winxframe
 		return MessageBoxExW
 		(
 			nullptr,
-			Error::Message().c_str(),
-			Error::ErrorLevelToString(Error::GetErrorLevel()),
+			this->Message().c_str(),
+			this->ErrorLevelToString(this->GetErrorLevel()),
 			MB_OK | MB_ICONERROR,
 			LANG_USER_DEFAULT
 		);
@@ -245,41 +258,43 @@ namespace winxframe
 
 	const char* Error::what() const noexcept
 	{
-		if (what_.empty()) what_ = Error::BuildWhat();
-		return what_.c_str();
+		if (this->GetWhat().empty())
+			what_ = this->BuildWhat();
+		return this->GetWhat().c_str();
 	}
 
 	const wchar_t* Error::wwhat() const noexcept
 	{
-		if (wwhat_.empty()) wwhat_ = Error::BuildWWhat();
-		return wwhat_.c_str();
+		if (this->GetWWhat().empty())
+			wwhat_ = this->BuildWWhat();
+		return this->GetWWhat().c_str();
 	}
 
 	std::wstring Error::LogCauseChain() const
 	{
 		std::wostringstream woss;
-		if (Error::GetCause())
+		if (this->GetCause())
 		{
 			try
 			{
-				std::rethrow_exception(Error::GetCause());
+				std::rethrow_exception(this->GetCause());
 			}
 			catch (const Error& nestedError)
 			{
-				woss << L"Caused by Error class: " << nestedError.wwhat() << L'\n';
+				woss << L"Caused by Error class:\n" << nestedError.wwhat() << L'\n';
 				woss << nestedError.LogCauseChain(); // recursive call
 			}
 			catch (const std::exception& nestedException)
 			{
-				woss << L"Caused by std::exception: " << string_utils::ToWide(nestedException.what()) << L'\n';
+				woss << L"Caused by std::exception:\n" << string_utils::ToWide(nestedException.what()) << L'\n';
 			}
 			catch (const char* nestedMsg)
 			{
-				woss << L"Caused by C-string exception: " << string_utils::ToWide(nestedMsg) << L'\n';
+				woss << L"Caused by C-string exception:\n" << string_utils::ToWide(nestedMsg) << L'\n';
 			}
 			catch (const wchar_t* nestedWideMsg)
 			{
-				woss << L"Caused by wide string exception: " << (nestedWideMsg ? nestedWideMsg : L"NULL") << L'\n';
+				woss << L"Caused by wide string exception:\n" << (nestedWideMsg ? nestedWideMsg : L"NULL") << L'\n';
 			}
 			catch (...)
 			{

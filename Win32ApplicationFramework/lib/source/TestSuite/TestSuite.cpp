@@ -1,7 +1,7 @@
 /*!
 lib\source\TestSuite\TestSuite.cpp
 Created: October 21, 2025
-Updated: November 2, 2025
+Updated: November 8, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite source file.
@@ -33,14 +33,14 @@ namespace winxframe
 	void TestRegistry::TestCase::Check(bool condition, const char* const conditionString, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) TestCase::LogCheckFail(conditionString, file, line);
+		if (!condition) this->LogCheckFail(conditionString, file, line);
 		else ++testsPassed_;
 	}
 
 	void TestRegistry::TestCase::Check(bool condition, const std::string& message, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) TestCase::LogCheckFail(message, file, line);
+		if (!condition) this->LogCheckFail(message, file, line);
 		else ++testsPassed_;
 	}
 
@@ -48,7 +48,7 @@ namespace winxframe
 	{
 		std::ostringstream oss;
 		std::filesystem::path f = file;
-		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ": " << conditionString << '\n';
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ": " << conditionString << '\n';
 		std::cout << oss.str();
 		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
 	}
@@ -57,7 +57,7 @@ namespace winxframe
 	{
 		std::ostringstream oss;
 		std::filesystem::path f = file;
-		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << TestCase::GetCaseName() << ", with custom message: " << message << '\n';
+		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ", with custom message: " << message << '\n';
 		std::cout << oss.str();
 		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
 	}
@@ -73,11 +73,11 @@ namespace winxframe
 		std::cout << "CONSTRUCTOR: TestRegistry()\n";
 
 		std::filesystem::path filename = "test_log.txt";
-		logFile_.open(filename);
-		if (!logFile_)
+		TestRegistry::logFile_.open(filename);
+		if (!TestRegistry::logFile_)
 		{
 			std::ostringstream oss;
-			oss << "Log File could not be opened: " << filename.string();
+			oss << "TestRegistry::TestRegistry() : Log File could not be opened: " << filename.string();
 			throw std::runtime_error(oss.str());
 		}
 
@@ -92,19 +92,7 @@ namespace winxframe
 	TestRegistry::~TestRegistry()
 	{
 		std::cout << "DESTRUCTOR: ~TestRegistry()\n";
-		logFile_.close();
-
-		if (currentCasePtr_)
-		{
-			delete currentCasePtr_;
-			currentCasePtr_ = nullptr;
-		}
-
-		if (casesPtr_)
-		{
-			casesPtr_.reset();
-			casesPtr_ = nullptr;
-		}
+		this->Cleanup();
 	}
 
 	/* STATIC DEFINITIONS */
@@ -117,14 +105,15 @@ namespace winxframe
 
 	std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestRegistry::TestCase*>>>& TestRegistry::CaseMap()
 	{
-		if (!casesPtr_) casesPtr_.reset(new std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestRegistry::TestCase*>>>);
-		return *casesPtr_;
+		if (!TestRegistry::casesPtr_)
+			TestRegistry::casesPtr_.reset(new std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestRegistry::TestCase*>>>);
+		return *TestRegistry::casesPtr_;
 	}
 
 	TestRegistry::TestCase* TestRegistry::CurrentCase()
 	{
-		if (!currentCasePtr_) throw std::runtime_error("CurrentCase: improperly invoked test case");
-		return currentCasePtr_;
+		if (!TestRegistry::currentCasePtr_) throw std::runtime_error("CurrentCase: improperly invoked test case");
+		return TestRegistry::currentCasePtr_;
 	}
 
 	void TestRegistry::RunAll()
@@ -140,13 +129,13 @@ namespace winxframe
 			numMaxWeight{ 3 }, numMaxStatus{ 4 }, numMaxTime{ 8 };
 		std::chrono::time_point<std::chrono::high_resolution_clock> start, stop;
 
-		for (auto& [groupName, sectionMap] : CaseMap())
+		for (auto& [groupName, sectionMap] : TestRegistry::CaseMap())
 		{
 			for (auto& [sectionName, testCases] : sectionMap)
 			{
 				for (TestCase* testCase : testCases)
 				{
-					currentCasePtr_ = testCase;
+					TestRegistry::currentCasePtr_ = testCase;
 
 					start = std::chrono::high_resolution_clock::now();
 					testCase->Run();
@@ -160,12 +149,12 @@ namespace winxframe
 					numMaxCaseName = stream_utils::MaxStreamSize(testCase->GetCaseName().size(), numMaxCaseName);
 					numMaxWeight = stream_utils::MaxStreamSize(testCase->GetCaseWeight(), numMaxWeight);
 
-					currentCasePtr_ = nullptr;
+					TestRegistry::currentCasePtr_ = nullptr;
 				}
 			}
 		}
 		numMaxTests = testsTotal == 0 ? numMaxTests : static_cast<std::streamsize>(floor(log10(testsTotal))) + 1;
-		TestRegistry::ReportSummary(casesTotal, numMaxGroupName, numMaxSectionName, numMaxCaseName, numMaxTests, numMaxPercent, numMaxWeight, numMaxStatus, numMaxTime);
+		this->ReportSummary(casesTotal, numMaxGroupName, numMaxSectionName, numMaxCaseName, numMaxTests, numMaxPercent, numMaxWeight, numMaxStatus, numMaxTime);
 
 		return EXIT_SUCCESS;
 	}
@@ -294,5 +283,32 @@ namespace winxframe
 		std::cout << console_color::Default;
 		oss.str("");
 		oss.clear();
+	}
+
+	void TestRegistry::Cleanup()
+	{
+		if (this->IsCleaned()) return;
+
+		if (TestRegistry::logFile_) TestRegistry::logFile_.close();
+
+		if (TestRegistry::currentCasePtr_)
+		{
+			delete TestRegistry::currentCasePtr_;
+			TestRegistry::currentCasePtr_ = nullptr;
+		}
+
+		if (TestRegistry::casesPtr_)
+		{
+			TestRegistry::casesPtr_.reset();
+			TestRegistry::casesPtr_ = nullptr;
+		}
+
+		std::cout << console_color::Default;
+		std::cout.clear();
+		std::wcout.clear();
+		std::cerr.clear();
+		std::wcerr.clear();
+
+		this->SetCleaned(true);
 	}
 }; // end of namespace winxframe

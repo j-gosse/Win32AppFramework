@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\Error.hpp
 Created: October 9, 2025
-Updated: November 2, 2025
+Updated: November 6, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error header file.
@@ -51,14 +51,15 @@ namespace winxframe
 		const wchar_t* wwhat() const noexcept;
 		std::wstring LogCauseChain() const;
 
-		DWORD GetErrorCode() const { return errorCode_; }
-		ErrorLevel GetErrorLevel() const { return errorLevel_; }
-		std::wstring GetFile() const { return file_; }
-		std::wstring GetFunc() const { return func_; }
-		int GetLine() const { return line_; }
+		DWORD GetErrorCode() const noexcept { return errorCode_; }
+		ErrorLevel GetErrorLevel() const noexcept { return errorLevel_; }
+		const std::wstring& GetFile() const noexcept { return file_; }
+		const std::wstring& GetFunc() const noexcept { return func_; }
+		int GetLine() const noexcept { return line_; }
 		const std::exception_ptr& GetCause() const noexcept { return cause_; }
-		std::string GetWhat() const { return what_; }
-		const std::wstring& GetContext() const { return context_; }
+		const std::string& GetWhat() const noexcept { return what_; }
+		const std::wstring& GetWWhat() const noexcept { return wwhat_; }
+		const std::wstring& GetContext() const noexcept { return context_; }
 	};
 }; // end of namespace winxframe
 

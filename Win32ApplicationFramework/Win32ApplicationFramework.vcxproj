@@ -151,6 +151,7 @@
     <ClInclude Include="lib\include\win32\resource.h" />
     <ClInclude Include="lib\include\win32\targetver.h" />
     <ClInclude Include="lib\include\win32\utils\win32_utils.hpp" />
+    <ClInclude Include="lib\include\win32\Window\HidUsage.hpp" />
     <ClInclude Include="lib\include\win32\Window\Window.hpp" />
   </ItemGroup>
   <ItemGroup>

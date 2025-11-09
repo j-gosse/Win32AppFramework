@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Console\Console.hpp
 Created: October 5, 2025
-Updated: November 2, 2025
+Updated: November 8, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console header file.
@@ -16,7 +16,6 @@ Console header file.
 #include <win32/framework.h>
 #include <win32/resource.h>
 #include <span>
-#include <optional>
 
 namespace winxframe
 {
@@ -32,59 +31,86 @@ namespace winxframe
 	{
 	private:
 		HINSTANCE hInstance_;
+		std::wstring consoleTitle_;
 
 		bool consoleAllocated_ = AllocConsole();
 		HWND hConsoleWindow_ = GetConsoleWindow();
 
-		const HANDLE OutputHandle() const;
-		const HANDLE InputHandle() const;
-		const HANDLE ErrorHandle() const;
-		HANDLE hConsoleOutput_ = OutputHandle();
-		HANDLE hConsoleInput_ = InputHandle();
-		HANDLE hConsoleError_ = ErrorHandle();
+		HANDLE hConsoleOutput_ = this->OutputHandle();
+		HANDLE hConsoleInput_ = this->InputHandle();
+		HANDLE hConsoleError_ = this->ErrorHandle();
 
-		static constexpr const size_t MAX_LOADSTRING = 100;
+		const WORD CONSOLE_WIDTH = 800;
+		const WORD CONSOLE_HEIGHT = 600;
 
-		void Init() const;
-		void Cleanup();
 		bool isCleaned_ = false;
 
-	public:
-		Console();
-		Console(HINSTANCE hInstance);
-		~Console();
+		HANDLE OutputHandle() const;
+		HANDLE InputHandle() const;
+		HANDLE ErrorHandle() const;
 
-		LONG CONSOLE_WIDTH = 800;
-		LONG CONSOLE_HEIGHT = 600;
+		void InitConsole();
+		void InitBuffer(std::vector<CHAR_INFO>& buffer, const std::wstring& text) const noexcept;
 
 		void WriteOutput(const std::span<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const;
 		void ReadOutput(std::vector<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& readRegion) const;
 		std::uint32_t ReadInput(std::vector<INPUT_RECORD>& inputEvents, std::size_t maxEvents = 128) const;
 
-		void InitBuffer(std::vector<CHAR_INFO>& buffer, const std::wstring& text) const;
-		ConsoleWriteRegion CreateWriteRegion(const std::wstring& text, COORD writePos, std::optional<WORD> attribs = std::nullopt) const;
-		void WriteLineChunks(const std::wstring& line, COORD& cursorPos, WORD attribs, SHORT screenBufferWidth) const;
-		void WriteText(const std::wstring& text, std::optional<WORD> attribs = std::nullopt) const;
-		void RedirectStdIO() const;
+		ConsoleWriteRegion CreateWriteRegion(const std::wstring& text, const COORD writePos, const WORD attribute) const noexcept;
+		void WriteLineChunks(const std::wstring& line, COORD& cursorPos, const WORD attribute, const SHORT screenBufferWidth) const;
+		void RedirectStdIO() const noexcept;
 
-		HANDLE GetOutputHandle() const { return hConsoleOutput_; }
-		HANDLE GetInputHandle() const { return hConsoleInput_; }
-		HANDLE GetErrorHandle() const { return hConsoleError_; }
+		void Cleanup() noexcept;
+
+	public:
+		Console();
+		Console(HINSTANCE hInstance);
+		Console(const Console&) = delete;
+		Console& operator=(const Console&) = delete;
+		Console(Console&&) = delete;
+		Console& operator=(Console&&) = delete;
+		~Console();
+
+		void WriteText(const std::wstring& text, const WORD attribute = console_color::WHITE) const;
+
+		HWND GetConsole() const noexcept { return hConsoleWindow_; }
+		void SetConsole(const HWND hWnd) noexcept { hConsoleWindow_ = hWnd; }
+		HINSTANCE GetInstance() const noexcept { return hInstance_; }
+
+		HANDLE GetOutputHandle() const noexcept { return hConsoleOutput_; }
+		void SetOutputHandle(const HANDLE handle) noexcept { hConsoleOutput_ = handle; }
+		HANDLE GetInputHandle() const noexcept { return hConsoleInput_; }
+		void SetInputHandle(const HANDLE handle) noexcept { hConsoleInput_ = handle; }
+		HANDLE GetErrorHandle() const noexcept { return hConsoleError_; }
+		void SetErrorHandle(const HANDLE handle) noexcept { hConsoleError_ = handle; }
 
 		CONSOLE_SCREEN_BUFFER_INFOEX GetScreenBufferInfo() const;
 
-		const SHORT GetScreenBufferWidth() const { return Console::GetScreenBufferInfo().dwSize.X; }
-		const SHORT GetScreenBufferHeight() const { return Console::GetScreenBufferInfo().dwSize.Y; }
+		std::uint32_t GetInputCodePage() const noexcept { return GetConsoleCP(); }
+		std::uint32_t GetOutputCodePage() const noexcept { return GetConsoleOutputCP(); }
+		void SetInputCodePage(std::uint32_t wCodePageID) const noexcept { SetConsoleCP(wCodePageID); }
+		void SetOutputCodePage(std::uint32_t wCodePageID) const noexcept { SetConsoleOutputCP(wCodePageID); }
 
-		COORD GetCursorPosition() const { return Console::GetScreenBufferInfo().dwCursorPosition; }
-		void SetCursorPosition(COORD cursorPos) const { SetConsoleCursorPosition(GetOutputHandle(), cursorPos); }
+		SHORT GetScreenBufferWidth() const { return this->GetScreenBufferInfo().dwSize.X; }
+		SHORT GetScreenBufferHeight() const { return this->GetScreenBufferInfo().dwSize.Y; }
 
-		WORD GetTextAttributes() const { return Console::GetScreenBufferInfo().wAttributes; }
-		void SetTextAttributes(std::vector<CHAR_INFO>& buffer, WORD attribs) const { for (CHAR_INFO& ch : buffer) ch.Attributes = attribs; }
+		CONSOLE_CURSOR_INFO GetCursorInfo() const;
+		void SetCursorInfo(const CONSOLE_CURSOR_INFO& cursorInfo) const noexcept { SetConsoleCursorInfo(this->GetOutputHandle(), &cursorInfo); }
 
-		void SetTitle(const wchar_t* title = nullptr) const;
+		COORD GetCursorPosition() const { return this->GetScreenBufferInfo().dwCursorPosition; }
+		void SetCursorPosition(const COORD& cursorPos) const noexcept { SetConsoleCursorPosition(this->GetOutputHandle(), cursorPos); }
+
+		WORD GetTextAttributes() const { return this->GetScreenBufferInfo().wAttributes; }
+		void SetTextAttributes(std::vector<CHAR_INFO>& buffer, WORD attributes) const noexcept { for (CHAR_INFO& ch : buffer) ch.Attributes = attributes; }
+
+		const std::wstring& GetTitle() const noexcept { return consoleTitle_; }
+		void SetTitle(const std::wstring& title = L"") noexcept;
+
+		bool IsConsoleAllocated() const noexcept { return consoleAllocated_; }
+
+		bool IsCleaned() const noexcept { return isCleaned_; }
+		void SetIsCleaned(const bool isCleaned) noexcept { isCleaned_ = isCleaned; }
 	};
-
 }; // end of namespace winxframe
 
 #endif
