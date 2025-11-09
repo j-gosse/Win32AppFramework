@@ -389,3 +389,4 @@ FodyWeavers.xsd
 /Win32ApplicationFramework/lib/include/win32/Console/ColorAttribute.hpp
 /CHANGELOG.md
 /CHANGELOG.md
+/Win32ApplicationFramework/HidUsage.hpp
