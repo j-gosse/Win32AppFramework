@@ -12,6 +12,8 @@ HID Usage header file.
 #ifndef HIDUSAGE_HPP_
 #define HIDUSAGE_HPP_
 
+#include <windows.h>
+
 namespace winxframe
 {
     enum struct HidUsagePage : USHORT

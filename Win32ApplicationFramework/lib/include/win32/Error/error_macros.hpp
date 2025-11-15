@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\error_macros.hpp
 Created: October 11, 2025
-Updated: November 6, 2025
+Updated: November 13, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error Macros header file.
@@ -18,29 +18,29 @@ namespace winxframe
 {
 	#define LOG_ERROR()\
 		do {\
-			Error error = Error(__FILE__, __func__, __LINE__);\
-			error.Log();\
+			Error errorRecord = Error(__FILE__, __func__, __LINE__);\
+			errorRecord.Log();\
 		} while(0)
 
 	#define LOG_ERROR_CTX(context)\
 		do {\
-			Error error = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
-			error.Log();\
+			Error errorRecord = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
+			errorRecord.Log();\
 		} while(0)
 
 	#define LOG_IF_ERROR(result)\
 		do {\
 			if (result) {\
-				Error error = Error(__FILE__, __func__, __LINE__);\
-				error.Log();\
+				Error errorRecord = Error(__FILE__, __func__, __LINE__);\
+				errorRecord.Log();\
 			}\
 		} while(0)
 
 	#define LOG_IF_ERROR_CTX(result, context)\
 		do {\
 			if (result) {\
-				Error error = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
-				error.Log();\
+				Error errorRecord = Error(std::wstring(context), __FILE__, __func__, __LINE__);\
+				errorRecord.Log();\
 			}\
 		} while(0)
 	

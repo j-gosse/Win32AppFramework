@@ -1,13 +1,14 @@
 /*!
 lib\source\TestSuite\TestSuite.cpp
 Created: October 21, 2025
-Updated: November 8, 2025
+Updated: November 15, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite source file.
 */
 
 #include <TestSuite/TestSuite.hpp>
+#include <win32/Error/error_macros.hpp>
 #include <win32/Console/ConsoleColor.hpp>
 #include <utils/string_utils.hpp>
 #include <utils/stream_utils.hpp>
@@ -22,10 +23,21 @@ namespace winxframe
 
 	/* CONSTRUCTOR */
 
-	TestRegistry::TestCase::TestCase(const std::string& name, const std::string& group, const std::string& section, double weight)
-		: caseName_(name), groupName_(group), sectionName_(section), caseWeight_(weight)
+	TestRegistry::TestCase::TestCase(const std::string& name, const std::string& group, const std::string& section, double weight) :
+		caseName_(name), 
+		groupName_(group), 
+		sectionName_(section), 
+		caseWeight_(weight)
 	{
-		TestRegistry::CaseMap()[groupName_][sectionName_].push_back(this);
+		try
+		{
+			TestRegistry::CaseMap()[groupName_][sectionName_].push_back(this);
+		}
+		catch (const Error& e)
+		{
+			e.Log();
+			e.MsgBox();
+		}
 	}
 
 	/* FUNCTION DEFINITIONS */
@@ -33,15 +45,19 @@ namespace winxframe
 	void TestRegistry::TestCase::Check(bool condition, const char* const conditionString, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) this->LogCheckFail(conditionString, file, line);
-		else ++testsPassed_;
+		if (!condition)
+			this->LogCheckFail(conditionString, file, line);
+		else
+			++testsPassed_;
 	}
 
 	void TestRegistry::TestCase::Check(bool condition, const std::string& message, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!condition) this->LogCheckFail(message, file, line);
-		else ++testsPassed_;
+		if (!condition)
+			this->LogCheckFail(message, file, line);
+		else
+			++testsPassed_;
 	}
 
 	void TestRegistry::TestCase::LogCheckFail(const char* const conditionString, const char* const file, int line) const noexcept
@@ -50,7 +66,8 @@ namespace winxframe
 		std::filesystem::path f = file;
 		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ": " << conditionString << '\n';
 		std::cout << oss.str();
-		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
+		if (TestRegistry::logFile_.is_open())
+			TestRegistry::logFile_ << oss.str();
 	}
 
 	void TestRegistry::TestCase::LogCheckFail(const std::string& message, const char* const file, int line) const noexcept
@@ -59,7 +76,8 @@ namespace winxframe
 		std::filesystem::path f = file;
 		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ", with custom message: " << message << '\n';
 		std::cout << oss.str();
-		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
+		if (TestRegistry::logFile_.is_open())
+			TestRegistry::logFile_ << oss.str();
 	}
 
 	//////////////////////////////////////////////////
@@ -69,6 +87,8 @@ namespace winxframe
 	/* CONSTRUCTOR */
 
 	TestRegistry::TestRegistry()
+		try :
+		isCleaned_(false)
 	{
 		std::cout << "CONSTRUCTOR: TestRegistry()\n";
 
@@ -76,9 +96,9 @@ namespace winxframe
 		TestRegistry::logFile_.open(filename);
 		if (!TestRegistry::logFile_)
 		{
-			std::ostringstream oss;
-			oss << "TestRegistry::TestRegistry() : Log File could not be opened: " << filename.string();
-			throw std::runtime_error(oss.str());
+			std::wostringstream woss;
+			woss << L"TestRegistry::TestRegistry() : Log File could not be opened: " << filename.wstring();
+			THROW_ERROR_CTX(woss.str());
 		}
 
 		std::cout.clear();
@@ -86,12 +106,18 @@ namespace winxframe
 		std::cerr.clear();
 		std::wcerr.clear();
 	}
+	catch (const Error&)
+	{
+		this->Cleanup();
+		RETHROW_ERROR_CTX(L"Rethrowing TestRegistry constructor error!");
+	}
 
 	/* DESTRUCTOR */
 
 	TestRegistry::~TestRegistry()
 	{
 		std::cout << "DESTRUCTOR: ~TestRegistry()\n";
+		OutputDebugStringW(L"DESTRUCTOR: ~TestRegistry()\n");
 		this->Cleanup();
 	}
 
@@ -251,7 +277,7 @@ namespace winxframe
 					oss.str("");
 					oss.clear();
 
-					logFile_ << std::setw(5) << std::setprecision(1) << std::fixed << ratio * testCase->GetCaseWeight()
+					TestRegistry::logFile_ << std::setw(5) << std::setprecision(1) << std::fixed << ratio * testCase->GetCaseWeight()
 						<< '\t' << testCase->GetCaseWeight()
 						<< '\t' << testCase->GetGroupName()
 						<< '\t' << testCase->GetSectionName()
@@ -277,9 +303,9 @@ namespace winxframe
 		oss << '\n' << "Total Running Time: " << std::setprecision(2) << std::fixed << totalElapsed.time << ' ' << totalElapsed.unit
 			<< '\n' << std::setprecision(1) << std::fixed << testsPassed << '/' << testsChecked << " tests (" << checkPercentage << "%)\n"
 			<< casesPassed << '/' << casesTotal << " cases (" << std::setprecision(1) << std::fixed << (casesTotal ? 100.0 * casesPassed / casesTotal : 0.0) << "%)\n"
-			<< score << " of " << maxScore << " (" << std::setprecision(1) << std::fixed << (maxScore > 0.0 ? score * 100 / maxScore : 0.0) << "%)\n";
+			<< score << " of " << maxScore << " score (" << std::setprecision(1) << std::fixed << (maxScore > 0.0 ? score * 100 / maxScore : 0.0) << "%)\n";
 		std::cout << oss.str() << std::endl;
-		logFile_ << oss.str() << std::endl;
+		TestRegistry::logFile_ << oss.str() << std::endl;
 		std::cout << console_color::Default;
 		oss.str("");
 		oss.clear();
@@ -287,9 +313,10 @@ namespace winxframe
 
 	void TestRegistry::Cleanup()
 	{
-		if (this->IsCleaned()) return;
+		if (isCleaned_) return;
 
-		if (TestRegistry::logFile_) TestRegistry::logFile_.close();
+		if (TestRegistry::logFile_)
+			TestRegistry::logFile_.close();
 
 		if (TestRegistry::currentCasePtr_)
 		{
@@ -309,6 +336,6 @@ namespace winxframe
 		std::cerr.clear();
 		std::wcerr.clear();
 
-		this->SetCleaned(true);
+		isCleaned_ = true;
 	}
 }; // end of namespace winxframe

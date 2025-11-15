@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Error\Error.hpp
 Created: October 9, 2025
-Updated: November 6, 2025
+Updated: November 15, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error header file.
@@ -15,6 +15,7 @@ Error header file.
 #include "ErrorLevel.hpp"
 #include <win32/framework.h>
 #include <win32/debug.h>
+#include <mutex>
 
 namespace winxframe
 {
@@ -30,6 +31,7 @@ namespace winxframe
 		std::exception_ptr cause_;
 		mutable std::string what_;
 		mutable std::wstring wwhat_;
+		static std::mutex msgBoxMutex_;
 
 		std::wstring Message() const;
 		std::wstring BuildErrorMessage(DWORD errorCode) const;
@@ -47,6 +49,8 @@ namespace winxframe
 
 		void Log() const;
 		int MsgBox() const;
+		void MsgBoxSync() const;
+		void MsgBoxAsync() const;
 		const char* what() const noexcept override;
 		const wchar_t* wwhat() const noexcept;
 		std::wstring LogCauseChain() const;

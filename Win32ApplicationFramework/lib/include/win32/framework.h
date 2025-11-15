@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\framework.h
 Created: October 5, 2025
-Updated: November 6, 2025
+Updated: November 10, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Framework header file. Include file for standard system include files, or project specific include files.
@@ -46,6 +46,7 @@ constexpr const size_t MAX_LOADSTRING = 100;
 #include <fstream>
 #include <filesystem>
 #include <type_traits>
+#include <algorithm>
 
 #include <stdexcept>
 #include <cstdio>

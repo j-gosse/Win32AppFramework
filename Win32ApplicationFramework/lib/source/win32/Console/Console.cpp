@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Console\Console.cpp
 Created: October 5, 2025
-Updated: November 8, 2025
+Updated: November 15, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console source file.
@@ -14,18 +14,44 @@ namespace winxframe
 {
     /* CONSTRUCTORS */
 
-    Console::Console() :
-        hInstance_(GetModuleHandleW(nullptr)), consoleTitle_(L"")
+    Console::Console(const std::wstring& consoleTitle, SHORT consoleWidth, SHORT consoleHeight)
+        try :
+        isConsoleAllocated_(AllocConsole()),
+        hConsoleWindow_(GetConsoleWindow()),
+        hConsoleOutput_(this->OutputHandle()),
+        hConsoleInput_(this->InputHandle()),
+        hConsoleError_(this->ErrorHandle()),
+        hInstance_(GetModuleHandleW(nullptr)),
+        consoleTitle_(consoleTitle)
     {
-        OutputDebugStringW(L"CONSTRUCTOR: Console()\n");
-        this->InitConsole();
+        OutputDebugStringW(L"CONSTRUCTOR: Console(const std::wstring& title, SHORT consoleWidth, SHORT consoleHeight)\n");
+        if (!isConsoleAllocated_)
+            OutputDebugStringW(L"Failed to allocate console, will attempt to attach later.");
+        this->InitConsole(consoleWidth, consoleHeight);
+    }
+    catch (const Error&)
+    {
+        RETHROW_ERROR_CTX(L"Rethrowing Console constructor error!");
     }
 
-    Console::Console(HINSTANCE hInstance) :
-        hInstance_(hInstance), consoleTitle_(L"")
+    Console::Console(HINSTANCE hInstance, const std::wstring& consoleTitle, SHORT consoleWidth, SHORT consoleHeight)
+        try :
+        isConsoleAllocated_(AllocConsole()),
+        hConsoleWindow_(GetConsoleWindow()),
+        hConsoleOutput_(this->OutputHandle()),
+        hConsoleInput_(this->InputHandle()),
+        hConsoleError_(this->ErrorHandle()),
+        hInstance_(hInstance),
+        consoleTitle_(consoleTitle)
     {
-        OutputDebugStringW(L"CONSTRUCTOR: Console(HINSTANCE hInstance)\n");
-        this->InitConsole();
+        OutputDebugStringW(L"CONSTRUCTOR: Console(HINSTANCE hInstance, const std::wstring& title, SHORT consoleWidth, SHORT consoleHeight)\n");
+        if (!isConsoleAllocated_)
+            OutputDebugStringW(L"Failed to allocate console, will attempt to attach later.");
+        this->InitConsole(consoleWidth, consoleHeight);
+    }
+    catch (const Error&)
+    {
+        RETHROW_ERROR_CTX(L"Rethrowing Console constructor error!");
     }
 
     /* DESTRUCTOR */
@@ -52,7 +78,7 @@ namespace winxframe
             0,
             nullptr
         );
-        THROW_IF_ERROR(hOutput == INVALID_HANDLE_VALUE);
+        THROW_IF_ERROR_CTX(!hOutput, L"Invalid handle value for output handle!");
 
         DWORD mode;
         THROW_IF_ERROR_CTX(!GetConsoleMode(hOutput, &mode), L"GetConsoleMode failed!");
@@ -74,7 +100,7 @@ namespace winxframe
             0,
             nullptr
         );
-        THROW_IF_ERROR(hInput == INVALID_HANDLE_VALUE);
+        THROW_IF_ERROR_CTX(!hInput, L"Invalid handle value for input handle!");
 
         DWORD mode;
         THROW_IF_ERROR_CTX(!GetConsoleMode(hInput, &mode), L"GetConsoleMode failed!");
@@ -96,7 +122,7 @@ namespace winxframe
             0,
             nullptr
         );
-        THROW_IF_ERROR(hError == INVALID_HANDLE_VALUE);
+        THROW_IF_ERROR_CTX(!hError, L"Invalid handle value for error handle!");
 
         DWORD mode;
         THROW_IF_ERROR_CTX(!GetConsoleMode(hError, &mode), L"GetConsoleMode failed!");
@@ -104,43 +130,58 @@ namespace winxframe
         return hError;
     }
 
-    void Console::InitConsole()
+    void Console::InitConsole(SHORT consoleWidth, SHORT consoleHeight)
     {
-        if (!this->IsConsoleAllocated())
+        if (!isConsoleAllocated_)
         {
             OutputDebugStringW(L"Failed to allocate console!");
             OutputDebugStringW(L"Attempting to attach console from parent process...");
             THROW_IF_ERROR_CTX(!AttachConsole(ATTACH_PARENT_PROCESS), L"Failed to attach console from parent process!");
         }
 
-        THROW_IF_ERROR_CTX(this->GetConsole() == nullptr, L"hConsoleWindow_ == nullptr");
-
-        // set console title
-        this->SetTitle(L"CONSOLE");
-        SetConsoleTitleW(this->GetTitle().c_str());
+        THROW_IF_ERROR_CTX(!hConsoleWindow_, L"Console window handle is invalid!");
 
         // redirect standard input/output streams
         this->RedirectStdIO();
+
+        // set console title
+        this->SetTitle(this->GetTitle());
+
+        // assign console sizes
+        COORD largest = GetLargestConsoleWindowSize(hConsoleOutput_);
+        maxConsoleColumns_ = largest.X;
+        maxConsoleRows_ = largest.Y;
+        this->SetConsoleColumns(consoleWidth);
+        this->SetConsoleRows(consoleHeight);
+
+        // set console size (buffer size must not be smaller than window size)
+        this->ResizeConsoleBuffer(consoleColumns_, this->GetScreenBufferHeight());
+        this->ResizeConsole(consoleColumns_, consoleRows_);
+
+        // reposition console
+        UINT uFlags = SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSIZE;
+        this->RepositionConsole(0, 0, 0, 0, uFlags);
     }
 
     void Console::InitBuffer(std::vector<CHAR_INFO>& buffer, const std::wstring& text) const noexcept
     {
         buffer.resize(text.size());
         for (size_t i = 0; i < text.size(); ++i)
-            buffer[i] = { {.UnicodeChar = text[i] }, 0 };
+            buffer[i] = CHAR_INFO{ .Char = {.UnicodeChar = text[i] }, .Attributes = 0 };
     }
 
     void Console::WriteOutput(const std::span<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& writeRegion) const
     {
-        THROW_IF_ERROR_CTX(!WriteConsoleOutputW(this->GetOutputHandle(), buffer.data(), bufferSize, bufferCoord, &writeRegion), L"WriteConsoleOutputW failed!");
+        THROW_IF_ERROR_CTX(!WriteConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &writeRegion), L"WriteConsoleOutputW failed!");
     }
 
     void Console::ReadOutput(std::vector<CHAR_INFO>& buffer, COORD bufferSize, COORD bufferCoord, SMALL_RECT& readRegion) const
     {
         std::size_t newBufferSize = static_cast<std::size_t>(bufferSize.X) * bufferSize.Y;
-        if (buffer.size() < newBufferSize) buffer.resize(newBufferSize);
+        if (buffer.size() < newBufferSize)
+            buffer.resize(newBufferSize);
 
-        THROW_IF_ERROR_CTX(!ReadConsoleOutputW(this->GetOutputHandle(), buffer.data(), bufferSize, bufferCoord, &readRegion), L"ReadConsoleOutputW failed!");
+        THROW_IF_ERROR_CTX(!ReadConsoleOutputW(hConsoleOutput_, buffer.data(), bufferSize, bufferCoord, &readRegion), L"ReadConsoleOutputW failed!");
     }
 
     std::uint32_t Console::ReadInput(std::vector<INPUT_RECORD>& inputEvents, std::size_t maxEvents) const
@@ -154,13 +195,13 @@ namespace winxframe
         inputEvents.resize(maxEvents);
 
         DWORD numEventsRead{};
-        THROW_IF_ERROR_CTX(!ReadConsoleInputW(this->GetOutputHandle(), inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead), L"ReadConsoleInputW failed!");
+        THROW_IF_ERROR_CTX(!ReadConsoleInputW(hConsoleOutput_, inputEvents.data(), static_cast<DWORD>(inputEvents.size()), &numEventsRead), L"ReadConsoleInputW failed!");
 
         inputEvents.resize(numEventsRead);
         return numEventsRead;
     }
 
-    ConsoleWriteRegion Console::CreateWriteRegion(const std::wstring& text, const COORD writePos, const WORD attribute) const noexcept
+    ConsoleWriteRegion Console::CreateWriteRegion(const std::wstring& text, COORD writePos, WORD attribute) const noexcept
     {
         ConsoleWriteRegion writeRegion;
         this->InitBuffer(writeRegion.buffer, text);
@@ -169,18 +210,17 @@ namespace winxframe
         writeRegion.bufferSize = { static_cast<SHORT>(writeRegion.buffer.size()), 1 };
         writeRegion.bufferCoord = { 0, 0 };
         writeRegion.writeRegion = { writePos.X, writePos.Y, static_cast<SHORT>(writePos.X + writeRegion.bufferSize.X - 1), writePos.Y };
-
         return writeRegion;
     }
 
-    void Console::WriteLineChunks(const std::wstring& line, COORD& cursorPos, const WORD attribute, const SHORT screenBufferWidth) const
+    void Console::WriteLineChunks(const std::wstring& line, COORD& cursorPos, WORD attribute, SHORT bufferWidth) const
     {
         size_t chunkStartIndex = 0;
         size_t lineLength = line.size();
 
         while (chunkStartIndex < lineLength)
         {
-            SHORT columnsRemaining = screenBufferWidth - cursorPos.X;
+            SHORT columnsRemaining = bufferWidth - cursorPos.X;
             size_t chunkLength = std::min<size_t>(lineLength - chunkStartIndex, columnsRemaining);
             std::wstring currentChunk = line.substr(chunkStartIndex, chunkLength);
 
@@ -190,7 +230,7 @@ namespace winxframe
             chunkStartIndex += chunkLength;
             cursorPos.X += static_cast<SHORT>(chunkLength);
 
-            if (cursorPos.X >= screenBufferWidth)
+            if (cursorPos.X >= bufferWidth)
             {
                 cursorPos.X = 0;
                 ++cursorPos.Y;
@@ -198,7 +238,7 @@ namespace winxframe
         }
     }
 
-    void Console::WriteText(const std::wstring& text, const WORD attribute) const
+    void Console::WriteText(const std::wstring& text, WORD attribute) const
     {
         if (text.empty()) return;
 
@@ -215,30 +255,46 @@ namespace winxframe
         this->SetCursorPosition(cursor);
     }
 
+    void Console::RepositionConsole(int leftX, int topY, int consoleWidth, int consoleHeight, UINT uFlags) const noexcept
+    {
+        SetWindowPos
+        (
+            hConsoleWindow_,
+            HWND_TOP,
+            leftX,
+            topY,
+            consoleWidth,
+            consoleHeight,
+            uFlags
+        );
+    }
+
     CONSOLE_SCREEN_BUFFER_INFOEX Console::GetScreenBufferInfo() const
     {
         CONSOLE_SCREEN_BUFFER_INFOEX csbix{};
         csbix.cbSize = sizeof(CONSOLE_SCREEN_BUFFER_INFOEX);
-        THROW_IF_ERROR_CTX(!GetConsoleScreenBufferInfoEx(this->GetOutputHandle(), &csbix), L"GetConsoleScreenBufferInfo failed!");
+        THROW_IF_ERROR_CTX(!GetConsoleScreenBufferInfoEx(hConsoleOutput_, &csbix), L"GetConsoleScreenBufferInfo failed!");
         return csbix;
     }
 
     CONSOLE_CURSOR_INFO Console::GetCursorInfo() const
     {
         CONSOLE_CURSOR_INFO cursorInfo{};
-        THROW_IF_ERROR_CTX(!GetConsoleCursorInfo(this->GetOutputHandle(), &cursorInfo), L"GetConsoleCursorInfo failed!");
+        THROW_IF_ERROR_CTX(!GetConsoleCursorInfo(hConsoleOutput_, &cursorInfo), L"GetConsoleCursorInfo failed!");
         return cursorInfo;
     }
 
     void Console::SetTitle(const std::wstring& title) noexcept
     {
-        if (!title.empty()) consoleTitle_ = title;
+        if (!title.empty())
+            consoleTitle_ = title;
         else
         {
             WCHAR titleBuffer[MAX_LOADSTRING]{};
-            LoadStringW(this->GetInstance(), IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
+            LoadStringW(hInstance_, IDS_CONSOLE_TITLE, titleBuffer, MAX_LOADSTRING);
             consoleTitle_ = titleBuffer;
         }
+        SetConsoleTitleW(this->GetTitle().c_str());
     }
 
     void Console::RedirectStdIO() const noexcept
@@ -257,37 +313,71 @@ namespace winxframe
         std::cin.clear();
     }
 
+    void Console::ResizeConsoleBuffer(SHORT bufferWidth, SHORT bufferHeight) const
+    {
+        assert(bufferWidth > 0 && bufferHeight > 0 && "Console::ResizeConsoleBuffer: Console Buffer width and height must be greater than 0.");
+        if (bufferWidth < consoleColumns_)
+            bufferWidth = consoleColumns_;
+        if (bufferHeight < consoleRows_)
+            bufferHeight = consoleRows_;
+
+        COORD bufferSize = { bufferWidth, bufferHeight };
+        if (!SetConsoleScreenBufferSize(hConsoleOutput_, bufferSize))
+        {
+            DWORD error = GetLastError();
+            OutputDebugStringW((L"SetConsoleScreenBufferSize failed: " + std::to_wstring(error)).c_str());
+            THROW_ERROR_CTX(L"SetConsoleScreenBufferSize failed!");
+        }
+    }
+
+    void Console::ResizeConsole(SHORT consoleWidth, SHORT consoleHeight) const
+    {
+        assert(consoleWidth > 0 && consoleHeight > 0 && "Console::ResizeConsole: Console width and height must be greater than 0.");
+        if (consoleWidth > maxConsoleColumns_)
+            consoleWidth = maxConsoleColumns_;
+        if (consoleHeight > maxConsoleRows_)
+            consoleHeight = maxConsoleRows_;
+
+        SMALL_RECT windowRect = { 0, 0, consoleWidth - 1, consoleHeight - 1 }; // subtract from width and height to ensure window sized less than buffer
+        if (!SetConsoleWindowInfo(hConsoleOutput_, TRUE, &windowRect))
+        {
+            DWORD error = GetLastError();
+            OutputDebugStringW((L"SetConsoleWindowInfo failed: " + std::to_wstring(error)).c_str());
+            THROW_ERROR_CTX(L"SetConsoleWindowInfo failed!");
+        }
+    }
+
     void Console::Cleanup() noexcept
     {
-        if (this->IsCleaned()) return;
+        if (isCleaned_) return;
 
-        if (this->GetOutputHandle())
+        if (hConsoleOutput_)
         {
-            CloseHandle(this->GetOutputHandle());
-            this->SetOutputHandle(INVALID_HANDLE_VALUE);
+            CloseHandle(hConsoleOutput_);
+            hConsoleOutput_ = INVALID_HANDLE_VALUE;
         }
 
-        if (this->GetInputHandle())
+        if (hConsoleInput_)
         {
-            CloseHandle(this->GetInputHandle());
-            this->SetInputHandle(INVALID_HANDLE_VALUE);
+            CloseHandle(hConsoleInput_);
+            hConsoleInput_ = INVALID_HANDLE_VALUE;
         }
 
-        if (this->GetErrorHandle())
+        if (hConsoleError_)
         {
-            CloseHandle(this->GetErrorHandle());
-            this->SetErrorHandle(INVALID_HANDLE_VALUE);
+            CloseHandle(hConsoleError_);
+            hConsoleError_ = INVALID_HANDLE_VALUE;
         }
 
-        if (this->GetConsole())
+        if (hConsoleWindow_)
         {
             DestroyWindow(hConsoleWindow_);
-            this->SetConsole(nullptr);
+            hConsoleWindow_ = nullptr;
         }
 
-        if (this->IsConsoleAllocated())
+        if (isConsoleAllocated_)
             FreeConsole();
 
-        this->SetIsCleaned(true);
+        isCleaned_ = true;
     }
 }; // end of namespace winxframe

@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: November 8, 2025
+Updated: November 14, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -14,91 +14,154 @@ namespace winxframe
 {
 	/* CONSTRUCTORS */
 
-	Window::Window() :
+	Window::Window(const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight)
+		try :
 		hWindow_(nullptr),
-		windowClass_({}),
 		hInstance_(GetModuleHandleW(nullptr)),
 		hAccelTable_(nullptr),
 		startupInfo_({}),
-		windowTitle_(L""),
-		windowClassName_(L"")
+		windowTitle_(windowTitle),
+		windowWidth_(windowWidth),
+		windowHeight_(windowHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window()\n";
+		std::wcout << L"CONSTRUCTOR: Window(const std::wstring& title, LONG windowWidth, LONG windowHeight)\n";
 		this->InitWindow();
+		++sWindowCount_;
+	}
+	catch (const Error&)
+	{
+		this->Cleanup();
+		if (hWindow_)
+		{
+			DestroyWindow(hWindow_);
+			hWindow_ = nullptr;
+			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
+		}
+
+		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
 
-	Window::Window(HINSTANCE hInstance) :
+	Window::Window(HINSTANCE hInstance, const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight)
+		try :
 		hWindow_(nullptr),
-		windowClass_({}),
 		hInstance_(hInstance),
 		hAccelTable_(nullptr),
 		startupInfo_({}),
-		windowTitle_(L""),
-		windowClassName_(L"")
+		windowTitle_(windowTitle),
+		windowWidth_(windowWidth),
+		windowHeight_(windowHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance)" << L'\n';
+		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, const std::wstring& title, LONG windowWidth, LONG windowHeight)" << L'\n';
 		this->InitWindow();
+		++sWindowCount_;
+	}
+	catch (const Error&)
+	{
+		this->Cleanup();
+		if (hWindow_)
+		{
+			DestroyWindow(hWindow_);
+			hWindow_ = nullptr;
+			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
+		}
+
+		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
 
 	/* DESTRUCTOR */
 
-	Window::~Window()
+	Window::~Window() noexcept
 	{
 		std::wcout << L"DESTRUCTOR: ~Window()" << L'\n';
 		OutputDebugStringW(L"DESTRUCTOR: ~Window()\n");
-		this->Cleanup();
+		--sWindowCount_;
 	}
+
+	/* STATIC DEFINITIONS */
+
+	WNDCLASSEXW Window::sWindowClass_ = {};
+	std::wstring Window::sWindowClassName_ = L"";
+	bool Window::sIsClassRegistered_ = false;
+	unsigned int Window::sWindowCount_ = 0;
 
 	/* FUNCTION DEFINITIONS */
 
-	BOOL Window::ProcessMessages(UINT wMsgFilterMin, UINT wMsgFilterMax)
+	void Window::InitWindow()
+	{
+		// system information
+		ZeroMemory(&processInfo_, sizeof(processInfo_));
+		ZeroMemory(&systemInfo_, sizeof(systemInfo_));
+		//this->SysInfo();
+		//this->ProcessorInfo();
+
+		// load accelerator
+		hAccelTable_ = LoadAcceleratorsW(hInstance_, MAKEINTRESOURCE(IDR_ACCELERATOR));
+
+		// set window class name
+		if (sWindowClassName_.empty())
+			this->SetWindowClassName();
+
+		// register window class
+		this->RegisterWindowClass();
+
+		// nCmdShow controls how the window is to be shown
+		// parameter is ignored the first time an application calls show window if STARTUPINFO structure specified
+		this->SetStartupInfo(this->InitStartupInfo());
+		int nCmdShow = this->StartupInfo().wShowWindow;
+
+		// properties for window creation
+		DWORD dwExStyle = 0;
+		LONG leftX = 0;
+		LONG topY = 0;
+		RECT rect = { leftX, topY, windowWidth_, windowHeight_ };
+		AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, TRUE, dwExStyle);
+		LONG windowWidth = rect.right - rect.left;
+		LONG windowHeight = rect.bottom - rect.top;
+
+		// set window title
+		this->SetWindowTitle(this->GetWindowTitle());
+
+		// create window
+		hWindow_ = this->BuildWindow(
+			this->GetWindowTitle(),
+			Window::sWindowClassName_,
+			windowWidth,
+			windowHeight,
+			WS_OVERLAPPEDWINDOW,	// window styles
+			0						// extended window styles
+		);
+
+		// register window to receive raw input from mouse and keyboard
+		this->RegisterRawInput(
+			{
+				{ HidUsagePage::GenericDesktopControls, HidUsageId::Mouse },
+				{ HidUsagePage::GenericDesktopControls, HidUsageId::Keyboard }
+			}//, RIDEV_INPUTSINK
+		);
+
+		// center window position relative to desktop resolution
+		int centerWidth = (desktopWidth_ - windowWidth) / 2;
+		int centerHeight = (desktopHeight_ - windowHeight) / 2;
+		UINT uFlags = SWP_SHOWWINDOW;
+		this->RepositionWindow(centerWidth, centerHeight, windowWidth, windowHeight, uFlags);
+
+		// show and update window
+		ShowWindow(hWindow_, nCmdShow);
+		UpdateWindow(hWindow_);
+	}
+
+	void Window::ProcessMessages(UINT wMsgFilterMin, UINT wMsgFilterMax) const noexcept
 	{
 		MSG msg = {};
-		const HACCEL accel = this->GetAccelTable();
+		const HACCEL accelTable = hAccelTable_;
 		while (PeekMessageW(&msg, nullptr, wMsgFilterMin, wMsgFilterMax, PM_REMOVE))
 		{
-			if (msg.message == WM_QUIT) return FALSE;
-
-			if (!accel || !TranslateAcceleratorW(msg.hwnd, accel, &msg))
+			if (!accelTable || !TranslateAcceleratorW(msg.hwnd, accelTable, &msg))
 			{
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);
 			}
 		}
-		return TRUE;
-	}
-
-	void Window::RegisterRawInput(std::initializer_list<std::pair<HidUsagePage, HidUsageId>> devices, DWORD dwFlags)
-	{
-		std::vector<RAWINPUTDEVICE> rids;
-		rids.reserve(devices.size());
-
-		for (const auto& [usagePage, usageId] : devices)
-		{
-			RAWINPUTDEVICE rid{};
-			rid.usUsagePage = static_cast<USHORT>(usagePage);
-			rid.usUsage = static_cast<USHORT>(usageId);
-			rid.dwFlags = dwFlags; // if no RIDEV_INPUTSINK, only receives input when focused
-			rid.hwndTarget = this->GetWindow();
-			rids.push_back(rid);
-		}
-
-		THROW_IF_ERROR_CTX(!RegisterRawInputDevices(rids.data(), static_cast<UINT>(rids.size()), sizeof(RAWINPUTDEVICE)), L"Failed to register raw input devices!");
-		this->SetRawInputDevices(std::move(rids));
-	}
-
-	void Window::RepositionWindow(int leftX, int topY, int windowWidth, int windowHeight) const noexcept
-	{
-		SetWindowPos
-		(						//BOOL SetWindowPos(
-			this->GetWindow(),	//[in]           HWND hWnd,
-			HWND_TOP,			//[in, optional] HWND hWndInsertAfter,
-			leftX,				//[in]           int  X,	 // The new position of the left side of the window, in client coordinates
-			topY,				//[in]           int  Y,	 // The new position of the top of the window, in client coordinates
-			windowWidth,		//[in]           int  cx,	 // The new width of the window, in pixels
-			windowHeight,		//[in]           int  cy,	 // The new height of the window, in pixels
-			SWP_SHOWWINDOW		//[in]           UINT uFlags // The window sizing and positioning flags
-		);
 	}
 
 	LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -120,13 +183,16 @@ namespace winxframe
 		case WM_SIZE:
 			std::wcout << L"CASE: WM_SIZE" << L'\n';
 			std::wcout << LOWORD(lParam) << L'x' << HIWORD(lParam) << L'\n';
-			this->SetScreenWidth(LOWORD(lParam));
-			this->SetScreenHeight(HIWORD(lParam));
+			windowWidth_ = LOWORD(lParam);
+			windowHeight_ = HIWORD(lParam);
 			return 0;
 		case WM_CLOSE:
 			std::wcout << L"CASE: WM_CLOSE" << L'\n';
-			if (MessageBoxW(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+			if (MessageBoxW(hWindow_, L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+			{
 				this->Cleanup();
+				DestroyWindow(hWindow_);
+			}
 			return 0;
 		case WM_COMMAND:
 			std::wcout << L"CASE: WM_COMMAND" << L'\n';
@@ -134,31 +200,41 @@ namespace winxframe
 			{
 			case IDM_ABOUT:
 				std::wcout << L"CASE: IDM_ABOUT" << L'\n';
-				DialogBoxParamW(this->GetInstance(), MAKEINTRESOURCE(IDD_ABOUTBOX), this->GetWindow(), Window::About, 0);
+				DialogBoxParamW(hInstance_, MAKEINTRESOURCE(IDD_ABOUTBOX), hWindow_, Window::About, 0);
 				return 0;
 			case IDM_EXIT:
 				std::wcout << L"CASE: IDM_EXIT" << L'\n';
-				if (MessageBoxW(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+				if (MessageBoxW(hWindow_, L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+				{
 					this->Cleanup();
+					DestroyWindow(hWindow_);
+				}
 				return 0;
 			}
 			return 0;
 		case WM_SETFOCUS:
-			std::wcout << L"CASE: WM_SETFOCUS" << L'\n';
+			std::wcout << L"CASE: WM_SETFOCUS\n";
 			return 0;
 		case WM_KILLFOCUS:
-			std::wcout << L"CASE: WM_KILLFOCUS" << L'\n';
+			std::wcout << L"CASE: WM_KILLFOCUS\n";
 			return 0;
 		case WM_DESTROY:
-			std::wcout << L"CASE: WM_DESTROY" << L'\n';
+			std::wcout << L"CASE: WM_DESTROY\n";
 			PostQuitMessage(0);
 			return 0;
+		case WM_NCDESTROY:
+		{
+			std::wcout << L"CASE: WM_NCDESTROY\n";
+			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
+			hWindow_ = nullptr;
+			return 0;
+		}
 		default:
-			return DefWindowProcW(this->GetWindow(), uMsg, wParam, lParam);
+			return DefWindowProcW(hWindow_, uMsg, wParam, lParam);
 		}
 	}
 
-	LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+	LRESULT CALLBACK Window::WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam) // static
 	{
 		Window* pWindow = nullptr;
 
@@ -168,11 +244,22 @@ namespace winxframe
 		{
 			LPCREATESTRUCTW createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
 			pWindow = static_cast<Window*>(createStruct->lpCreateParams);
-			LOG_IF_ERROR_CTX(!pWindow, L"WARNING: lpCreateParams is null in WM_NCCREATE!");
-			if (pWindow)
+			try
 			{
-				SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
-				pWindow->SetWindow(hWnd);
+				if (!pWindow)
+				{
+					THROW_ERROR_CTX(L"WARNING! lpCreateParams is null in WM_NCCREATE!");
+				}
+				else
+				{
+					SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pWindow));
+					pWindow->hWindow_ = hWnd;
+				}
+			}
+			catch (const Error& e)
+			{
+				e.MsgBox();
+				std::wcerr << L"Caught Error (Error class):\n" << e.wwhat() << L'\n';
 			}
 			break;
 		}
@@ -181,54 +268,99 @@ namespace winxframe
 			break;
 		}
 
-		if (pWindow) return pWindow->HandleMessage(uMsg, wParam, lParam);
+		if (pWindow)
+			return pWindow->HandleMessage(uMsg, wParam, lParam);
 		return DefWindowProcW(hWnd, uMsg, wParam, lParam);
 	}
 
-	ATOM Window::RegisterWindowClass(int extraClassBytes, int extraWindowBytes)
+	ATOM Window::RegisterWindowClass(int extraClassBytes, int extraWindowBytes) const
 	{
-		WNDCLASSEX wndClassEx{};
-		wndClassEx.cbSize = sizeof(WNDCLASSEX);
-		wndClassEx.lpfnWndProc = Window::WindowProc;
-		wndClassEx.hInstance = this->GetInstance();
-		wndClassEx.lpszClassName = this->GetWindowClassName().c_str();
-		wndClassEx.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | CS_OWNDC;
-		wndClassEx.lpszMenuName = MAKEINTRESOURCEW(IDR_MAIN_MENU);
-		wndClassEx.cbClsExtra = extraClassBytes;
-		wndClassEx.cbWndExtra = extraWindowBytes;
-		wndClassEx.hCursor = LoadCursorW(NULL, IDC_ARROW);
-		wndClassEx.hIcon = LoadIconW(this->GetInstance(), MAKEINTRESOURCE(IDI_PRIMARY));
-		wndClassEx.hIconSm = LoadIconW(this->GetInstance(), MAKEINTRESOURCE(IDI_SMALL));
-		wndClassEx.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-		//wndClassEx.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
-		//wndClassEx.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+		if (sIsClassRegistered_) return 1;
 
-		this->SetWindowClass(wndClassEx);
-		ATOM result = RegisterClassExW(&this->GetWindowClass());
-		THROW_IF_ERROR_CTX(!result, L"Failed to register the window class!");
+		Window::sWindowClass_.cbSize = sizeof(WNDCLASSEX);
+		Window::sWindowClass_.lpfnWndProc = Window::WindowProc;
+		Window::sWindowClass_.hInstance = hInstance_;
+		Window::sWindowClass_.lpszClassName = sWindowClassName_.c_str();
+		Window::sWindowClass_.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | CS_OWNDC;
+		Window::sWindowClass_.lpszMenuName = MAKEINTRESOURCEW(IDR_MAIN_MENU);
+		Window::sWindowClass_.cbClsExtra = extraClassBytes;
+		Window::sWindowClass_.cbWndExtra = extraWindowBytes;
+		Window::sWindowClass_.hCursor = LoadCursorW(NULL, IDC_ARROW);
+		Window::sWindowClass_.hIcon = LoadIconW(hInstance_, MAKEINTRESOURCE(IDI_PRIMARY));
+		Window::sWindowClass_.hIconSm = LoadIconW(hInstance_, MAKEINTRESOURCE(IDI_SMALL));
+		Window::sWindowClass_.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+		//Window::sWindowClass_.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+		//Window::sWindowClass_.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+
+		ATOM result = RegisterClassExW(&Window::sWindowClass_);
+		THROW_IF_ERROR_CTX(!result && GetLastError() != ERROR_CLASS_ALREADY_EXISTS, L"Failed to register the window class!");
+		Window::sIsClassRegistered_ = true;
 		return result;
 	}
 
-	HWND Window::BuildWindow(int windowWidth, int windowHeight, DWORD dwExStyle)
+	void Window::UnregisterWindowClass() // static
+	{
+		if (Window::sWindowCount_ == 0 && Window::sIsClassRegistered_)
+		{
+			THROW_IF_ERROR_CTX(!UnregisterClassW(Window::sWindowClass_.lpszClassName, Window::sWindowClass_.hInstance), L"Failed to unregister the window class!");
+			Window::sWindowClass_ = {};
+			Window::sIsClassRegistered_ = false;
+		}
+	}
+
+	HWND Window::BuildWindow(const std::wstring& windowTitle, const std::wstring& className, LONG windowWidth, LONG windowHeight, DWORD dwStyle, DWORD dwExStyle)
 	{
 		HWND hWnd = CreateWindowExW
-		(										//HWND CreateWindowExW(
-			dwExStyle,							//[in]			 DWORD	   dwExStyle,
-			this->GetWindowClassName().c_str(),	//[in, optional] LPCSTR    lpClassName,
-			this->GetWindowTitle().c_str(),		//[in, optional] LPCSTR    lpWindowName,
-			WS_OVERLAPPEDWINDOW,				//[in]           DWORD     dwStyle,
-			CW_USEDEFAULT,						//[in]           int       X,
-			CW_USEDEFAULT,						//[in]           int       Y,
-			windowWidth,						//[in]           int       nWidth,
-			windowHeight,						//[in]           int       nHeight,
-			nullptr,							//[in, optional] HWND      hWndParent,
-			nullptr,							//[in, optional] HMENU     hMenu,
-			this->GetInstance(),				//[in, optional] HINSTANCE hInstance,
-			this								//[in, optional] LPVOID    lpParam
+		(							//HWND CreateWindowExW(
+			dwExStyle,				//[in]			 DWORD	   dwExStyle,
+			className.c_str(),		//[in, optional] LPCSTR    lpClassName,
+			windowTitle.c_str(),	//[in, optional] LPCSTR    lpWindowName,
+			dwStyle,				//[in]           DWORD     dwStyle,
+			CW_USEDEFAULT,			//[in]           int       X,
+			CW_USEDEFAULT,			//[in]           int       Y,
+			windowWidth,			//[in]           int       nWidth,
+			windowHeight,			//[in]           int       nHeight,
+			nullptr,				//[in, optional] HWND      hWndParent,
+			nullptr,				//[in, optional] HMENU     hMenu,
+			hInstance_,				//[in, optional] HINSTANCE hInstance,
+			this					//[in, optional] LPVOID    lpParam
 		);
 
-		THROW_IF_ERROR_CTX(hWnd == nullptr, L"Failed to create the window!");
+		THROW_IF_ERROR_CTX(!hWnd, L"Failed to create the window!");
 		return hWnd;
+	}
+
+	void Window::RepositionWindow(int leftX, int topY, int windowWidth, int windowHeight, UINT uFlags) const noexcept
+	{
+		SetWindowPos
+		(					//BOOL SetWindowPos(
+			hWindow_,		//[in]           HWND hWnd,
+			HWND_TOP,		//[in, optional] HWND hWndInsertAfter,
+			leftX,			//[in]           int  X,	 // The new position of the left side of the window, in client coordinates
+			topY,			//[in]           int  Y,	 // The new position of the top of the window, in client coordinates
+			windowWidth,	//[in]           int  cx,	 // The new width of the window, in pixels
+			windowHeight,	//[in]           int  cy,	 // The new height of the window, in pixels
+			uFlags			//[in]           UINT uFlags // The window sizing and positioning flags
+		);
+	}
+
+	void Window::RegisterRawInput(std::initializer_list<std::pair<HidUsagePage, HidUsageId>> devices, DWORD dwFlags)
+	{
+		std::vector<RAWINPUTDEVICE> rids;
+		rids.reserve(devices.size());
+
+		for (const auto& [usagePage, usageId] : devices)
+		{
+			RAWINPUTDEVICE rid{};
+			rid.usUsagePage = static_cast<USHORT>(usagePage);
+			rid.usUsage = static_cast<USHORT>(usageId);
+			rid.dwFlags = dwFlags; // if no RIDEV_INPUTSINK, only receives input when focused
+			rid.hwndTarget = hWindow_;
+			rids.push_back(rid);
+		}
+
+		THROW_IF_ERROR_CTX(!RegisterRawInputDevices(rids.data(), static_cast<UINT>(rids.size()), sizeof(RAWINPUTDEVICE)), L"Failed to register raw input devices!");
+		this->SetRawInputDevices(std::move(rids));
 	}
 
 	STARTUPINFO Window::InitStartupInfo() noexcept
@@ -238,57 +370,6 @@ namespace winxframe
 		startupInfo.dwFlags = STARTF_USESHOWWINDOW;
 		startupInfo.wShowWindow = SW_SHOW;
 		return startupInfo;
-	}
-
-	void Window::InitWindow()
-	{
-		// system information
-		ZeroMemory(&processInfo_, sizeof(processInfo_));
-		ZeroMemory(&systemInfo_, sizeof(systemInfo_));
-		this->SysInfo();
-		//this->ProcessorInfo();
-
-		// load accelerator
-		this->SetAccelTable(LoadAcceleratorsW(this->GetInstance(), MAKEINTRESOURCE(IDR_ACCELERATOR)));
-
-		// register window class
-		this->SetWindowClassName();
-		this->RegisterWindowClass();
-
-		// nCmdShow controls how the window is to be shown
-		// parameter is ignored the first time an application calls show window if STARTUPINFO structure specified
-		this->SetStartupInfo(this->InitStartupInfo());
-		int nCmdShow = this->StartupInfo().wShowWindow;
-
-		// properties for window creation
-		DWORD dwExStyle = 0;
-		LONG leftX = 0;
-		LONG topY = 0;
-		RECT rect = { leftX, topY, Window::WINDOW_WIDTH, Window::WINDOW_HEIGHT };
-		AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, TRUE, dwExStyle);
-		int windowWidth = rect.right - rect.left;
-		int windowHeight = rect.bottom - rect.top;
-
-		// create window
-		this->SetWindowTitle(L"WINDOW");
-		this->SetWindow(this->BuildWindow(windowWidth, windowHeight));
-
-		// register window to receive raw input from mouse and keyboard
-		this->RegisterRawInput(
-			{
-				{ HidUsagePage::GenericDesktopControls, HidUsageId::Mouse },
-				{ HidUsagePage::GenericDesktopControls, HidUsageId::Keyboard }
-			}//, RIDEV_INPUTSINK
-		);
-
-		// center window position relative to desktop resolution
-		int centerWidth = (this->GetDesktopWidth() - windowWidth) / 2;
-		int centerHeight = (this->GetDesktopHeight() - windowHeight) / 2;
-		this->RepositionWindow(centerWidth, centerHeight, windowWidth, windowHeight);
-
-		// show and update window
-		ShowWindow(this->GetWindow(), nCmdShow);
-		UpdateWindow(this->GetWindow());
 	}
 
 	INT_PTR CALLBACK Window::About(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept
@@ -314,7 +395,7 @@ namespace winxframe
 		return FALSE;
 	}
 
-	void Window::SysInfo() noexcept
+	void Window::SysInfo()
 	{
 		WCHAR buffer1[UNLEN + 1]{};
 		DWORD size1 = UNLEN + 1;
@@ -388,8 +469,12 @@ namespace winxframe
 
 	void Window::ProcessorInfo()
 	{
-		PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = NULL;
+		PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = nullptr;
 		DWORD size = 0;
+		DWORD error = GetLastError();
+
+		THROW_IF_ERROR_CTX(GetLogicalProcessorInformation(nullptr, &size) && error != ERROR_INSUFFICIENT_BUFFER, 
+			L"Failed to get required buffer size for logical processor info!");
 
 		/*
 		typedef struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION
@@ -414,14 +499,14 @@ namespace winxframe
 			} DUMMYUNIONNAME;
 		} SYSTEM_LOGICAL_PROCESSOR_INFORMATION, *PSYSTEM_LOGICAL_PROCESSOR_INFORMATION;
 		*/
-		GetLogicalProcessorInformation(NULL, &size); // Get the required buffer size
+
 		buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(size);
-		THROW_IF_ERROR_CTX(buffer == NULL, L"Failed to allocate memory!");
+		THROW_IF_ERROR_CTX(!buffer, L"Failed to allocate memory for logical processor info!");
 
 		if (!GetLogicalProcessorInformation(buffer, &size))
 		{
 			free(buffer);
-			THROW_ERROR_CTX(L"Failed to call GetLogicalProcessorInformation!");
+			THROW_ERROR_CTX(L"Failed to get logical processor information!");
 		}
 
 		DWORD count = size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
@@ -432,7 +517,7 @@ namespace winxframe
 		std::wcout << L'\n';
 	}
 
-	void Window::CleanRawDevices()
+	void Window::CleanupRawDevices()
 	{
 		const std::vector<RAWINPUTDEVICE>& devices = this->GetRawInputDevices();
 
@@ -446,9 +531,15 @@ namespace winxframe
 				rid.hwndTarget = nullptr;
 			}
 
-			if (!RegisterRawInputDevices(ridsToRemove.data(), static_cast<UINT>(ridsToRemove.size()), sizeof(RAWINPUTDEVICE)))
+			try
 			{
-				THROW_ERROR_CTX(L"Failed to unregister raw input devices!");
+				THROW_IF_ERROR_CTX(!RegisterRawInputDevices(ridsToRemove.data(), static_cast<UINT>(ridsToRemove.size()), sizeof(RAWINPUTDEVICE)), 
+					L"Failed to unregister raw input devices!");
+			}
+			catch (const Error& e)
+			{
+				e.MsgBox();
+				std::wcerr << L"Caught Error (Error class):\n" << e.wwhat() << L'\n';
 			}
 
 			this->SetRawInputDevices({});
@@ -457,46 +548,43 @@ namespace winxframe
 
 	void Window::Cleanup()
 	{
-		if (this->IsCleaned()) return;
+		if (isCleaned_)
+			return;
 
-		this->CleanRawDevices();
+		this->CleanupRawDevices();
 
-		if (this->GetAccelTable())
+		if (hAccelTable_)
 		{
-			DestroyAcceleratorTable(this->GetAccelTable());
-			this->SetAccelTable(nullptr);
+			DestroyAcceleratorTable(hAccelTable_);
+			hAccelTable_ = nullptr;
 		}
 
-		if (this->GetWindow())
-		{
-			DestroyWindow(this->GetWindow());
-			this->SetWindow(nullptr);
-		}
-
-		THROW_IF_ERROR_CTX(!UnregisterClassW(this->GetWindowClassName().c_str(), this->GetInstance()), L"Failed to unregister the Window class!");
-
-		this->SetIsCleaned(true);
+		isCleaned_ = true;
 	}
 
-	void Window::SetWindowClassName(const std::wstring& className) noexcept
+	void Window::SetWindowClassName(const std::wstring& className) const noexcept
 	{
-		if (!className.empty()) windowClassName_ = className;
+		if (!className.empty())
+			Window::sWindowClassName_ = className;
 		else
 		{
 			WCHAR titleBuffer[MAX_LOADSTRING]{};
-			LoadStringW(this->GetInstance(), IDS_WINDOW_CLASS, titleBuffer, MAX_LOADSTRING);
-			windowClassName_ = titleBuffer;
+			LoadStringW(hInstance_, IDS_WINDOW_CLASS, titleBuffer, MAX_LOADSTRING);
+			Window::sWindowClassName_ = titleBuffer;
 		}
 	}
 
 	void Window::SetWindowTitle(const std::wstring& title) noexcept
 	{
-		if (!title.empty()) windowTitle_ = title;
+		if (!title.empty())
+			windowTitle_ = title;
 		else
 		{
 			WCHAR titleBuffer[MAX_LOADSTRING]{};
-			LoadStringW(this->GetInstance(), IDS_WINDOW_TITLE, titleBuffer, MAX_LOADSTRING);
+			LoadStringW(hInstance_, IDS_WINDOW_TITLE, titleBuffer, MAX_LOADSTRING);
 			windowTitle_ = titleBuffer;
 		}
+		if (hWindow_)
+			SetWindowTextW(hWindow_, this->GetWindowTitle().c_str());
 	}
 }; // end of namespace winxframe

@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: November 8, 2025
+Updated: November 15, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -9,6 +9,7 @@ Error source file.
 
 #include <win32/Error/Error.hpp>
 #include <win32/utils/win32_utils.hpp>
+#include <thread>
 
 namespace winxframe
 {
@@ -112,6 +113,10 @@ namespace winxframe
 		OutputDebugStringW(L"DESTRUCTOR: Error()\n");
 	}
 
+	/* STATIC DEFINITIONS */
+
+	std::mutex Error::msgBoxMutex_;
+
 	/* FUNCTION DEFINITIONS */
 
 	std::wstring Error::Message() const
@@ -146,7 +151,7 @@ namespace winxframe
 
 	ErrorLevel Error::AssignErrorLevel() const
 	{
-		switch (this->GetErrorCode())
+		switch (errorCode_)
 		{
 		case S_OK:						// Operation was successful
 		case S_FALSE:					// Operation was successful, but condition was false
@@ -189,6 +194,7 @@ namespace winxframe
 		case ERROR_LOCK_VIOLATION:
 		case ERROR_ACCESS_DENIED:
 		case ERROR_INVALID_HANDLE:
+		case ERROR_INVALID_WINDOW_HANDLE:
 			return ErrorLevel::Critical;
 
 		case ERROR_STACK_OVERFLOW:
@@ -254,6 +260,28 @@ namespace winxframe
 			MB_OK | MB_ICONERROR,
 			LANG_USER_DEFAULT
 		);
+	}
+
+	void Error::MsgBoxSync() const
+	{
+		std::thread t([this]()
+			{
+				std::lock_guard<std::mutex> lock(msgBoxMutex_);
+				this->MsgBox();
+			}
+		);
+		t.join(); // pauses thread execution until dismissed
+	}
+
+	void Error::MsgBoxAsync() const
+	{
+		std::thread t([this]()
+			{
+				std::lock_guard<std::mutex> lock(msgBoxMutex_);
+				this->MsgBox();
+			}
+		);
+		t.detach(); // does NOT block thread execution
 	}
 
 	const char* Error::what() const noexcept

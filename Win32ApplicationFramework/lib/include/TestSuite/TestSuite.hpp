@@ -1,7 +1,7 @@
 /*!
 lib\include\TestSuite\TestSuite.hpp
 Created: October 21, 2025
-Updated: November 8, 2025
+Updated: November 15, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite header file.
@@ -36,7 +36,6 @@ namespace winxframe
 			std::chrono::nanoseconds caseElapsed_{};
 
 		public:
-			friend class TestRegistry;
 			TestCase(TestCase const&) = delete;
 			void operator = (TestCase const&) = delete;
 
@@ -75,6 +74,7 @@ namespace winxframe
 		static std::unique_ptr<std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestCase*>>>> casesPtr_;
 		static TestCase* currentCasePtr_;
 		static std::ofstream logFile_;
+		bool isCleaned_;
 
 		const int Run() const noexcept;
 		static std::unordered_map<std::string, std::unordered_map<std::string, std::vector<TestCase*>>>& CaseMap();
@@ -83,9 +83,9 @@ namespace winxframe
 			std::streamsize numMaxStatus, std::streamsize numMaxTime) const noexcept;
 
 		void Cleanup();
-		bool isCleaned_ = false;
 
 	public:
+		friend class TestCase;
 		TestRegistry();
 		~TestRegistry();
 		static void RunAll();
@@ -98,8 +98,10 @@ namespace winxframe
 	void TestRegistry::TestCase::CheckEqual(const LHS& lhs, const RHS& rhs, const char* lhsString, const char* rhsString, const char* const file, int line)
 	{
 		++testsChecked_;
-		if (!(lhs == rhs)) this->LogCheckEqualFail(lhs, rhs, lhsString, rhsString, file, line);
-		else ++testsPassed_;
+		if (!(lhs == rhs))
+			this->LogCheckEqualFail(lhs, rhs, lhsString, rhsString, file, line);
+		else
+			++testsPassed_;
 	}
 
 	template <typename LHS, typename RHS, typename Value>
@@ -107,8 +109,10 @@ namespace winxframe
 	{
 		bool condition = std::abs((lhs)-(rhs)) <= std::abs(min);
 		++testsChecked_;
-		if (!condition) this->LogCheckWithinFail(lhs, rhs, min, lhsString, rhsString, minString, file, line);
-		else ++testsPassed_;
+		if (!condition)
+			this->LogCheckWithinFail(lhs, rhs, min, lhsString, rhsString, minString, file, line);
+		else
+			++testsPassed_;
 	}
 
 	template <typename LHS, typename RHS>
@@ -119,7 +123,8 @@ namespace winxframe
 		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ": "
 			<< "\"" << lhsString << "\" [" << lhs << "] != \"" << rhsString << "\" [" << rhs << "]\n";
 		std::cout << oss.str();
-		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
+		if (TestRegistry::logFile_.is_open())
+			TestRegistry::logFile_ << oss.str();
 	}
 
 	template <typename LHS, typename RHS, typename Value>
@@ -130,7 +135,8 @@ namespace winxframe
 		oss << "File: " << f.filename().string() << ", Line: " << line << ", check failed in " << this->GetCaseName() << ": "
 			<< "difference(" << lhsString << ", " << rhsString << ") > " << minString << " ==> \t|" << lhs << " - " << rhs << "| > " << std::abs(min) << '\n';
 		std::cout << oss.str();
-		if (TestRegistry::logFile_.is_open()) TestRegistry::logFile_ << oss.str();
+		if (TestRegistry::logFile_.is_open())
+			TestRegistry::logFile_ << oss.str();
 	}
 
 }; // end of namespace winxframe
