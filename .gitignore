@@ -390,3 +390,7 @@ FodyWeavers.xsd
 /CHANGELOG.md
 /CHANGELOG.md
 /Win32ApplicationFramework/HidUsage.hpp
+/Win32ApplicationFramework/MessageLoopMode.hpp
+/Win32ApplicationFramework/lib/include/win32/Window/MessageLoopMode.hpp
+/Win32ApplicationFramework/window_manager.hpp
+/Win32ApplicationFramework/window_manager.cpp
