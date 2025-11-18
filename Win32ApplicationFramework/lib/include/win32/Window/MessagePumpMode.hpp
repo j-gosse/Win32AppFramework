@@ -1,23 +1,23 @@
 /*!
-lib\include\win32\Window\MessageLoopMode.hpp
+lib\include\win32\Window\MessagePumpMode.hpp
 Created: November 16, 2025
 Updated: November 16, 2025
 Copyright (c) 2025, Jacob Gosse
 
-Message Loop Mode header file.
+Message Pump Mode header file.
 */
 
 #pragma once
 
-#ifndef MESSAGELOOPMODE_HPP_
-#define MESSAGELOOPMODE_HPP_
+#ifndef MESSAGEPUMPMODE_HPP_
+#define MESSAGEPUMPMODE_HPP_
 
 namespace winxframe
 {
-    enum struct MessageLoopMode
+    enum struct MessagePumpMode
     {
-        RealTime,   // PeekMessage-based engine loop
-        EventDriven // GetMessage/WM_QUIT loop
+        RealTime,   // PeekMessage real-time loop
+        EventDriven // GetMessage event-driven loop
     };
 }; // end of namespace winxframe
 

@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: November 14, 2025
+Updated: November 18, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -14,56 +14,52 @@ namespace winxframe
 {
 	/* CONSTRUCTORS */
 
-	Window::Window(const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight)
+	Window::Window(const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)
 		try :
 		hWindow_(nullptr),
 		hInstance_(GetModuleHandleW(nullptr)),
 		hAccelTable_(nullptr),
 		startupInfo_({}),
+		pumpMode_(mode),
 		windowTitle_(windowTitle),
 		windowWidth_(windowWidth),
 		windowHeight_(windowHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(const std::wstring& title, LONG windowWidth, LONG windowHeight)\n";
+		std::wcout << L"CONSTRUCTOR: Window(const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)\n";
 		this->InitWindow();
-		++sWindowCount_;
 	}
 	catch (const Error&)
 	{
-		this->Cleanup();
 		if (hWindow_)
 		{
 			DestroyWindow(hWindow_);
-			hWindow_ = nullptr;
-			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
 		}
+		this->Cleanup();
 
 		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
 
-	Window::Window(HINSTANCE hInstance, const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight)
+	Window::Window(HINSTANCE hInstance, const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)
 		try :
 		hWindow_(nullptr),
 		hInstance_(hInstance),
 		hAccelTable_(nullptr),
 		startupInfo_({}),
+		pumpMode_(mode),
 		windowTitle_(windowTitle),
 		windowWidth_(windowWidth),
 		windowHeight_(windowHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, const std::wstring& title, LONG windowWidth, LONG windowHeight)" << L'\n';
+		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)" << L'\n';
 		this->InitWindow();
-		++sWindowCount_;
 	}
 	catch (const Error&)
 	{
-		this->Cleanup();
 		if (hWindow_)
 		{
 			DestroyWindow(hWindow_);
-			hWindow_ = nullptr;
-			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
 		}
+		this->Cleanup();
 
 		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
@@ -74,7 +70,11 @@ namespace winxframe
 	{
 		std::wcout << L"DESTRUCTOR: ~Window()" << L'\n';
 		OutputDebugStringW(L"DESTRUCTOR: ~Window()\n");
-		--sWindowCount_;
+		if (hWindow_)
+		{
+			DestroyWindow(hWindow_);
+		}
+		this->Cleanup();
 	}
 
 	/* STATIC DEFINITIONS */
@@ -82,7 +82,8 @@ namespace winxframe
 	WNDCLASSEXW Window::sWindowClass_ = {};
 	std::wstring Window::sWindowClassName_ = L"";
 	bool Window::sIsClassRegistered_ = false;
-	unsigned int Window::sWindowCount_ = 0;
+	unsigned int Window::sRealTimeWindowCount_ = 0;
+	unsigned int Window::sEventDrivenWindowCount_ = 0;
 
 	/* FUNCTION DEFINITIONS */
 
@@ -98,7 +99,7 @@ namespace winxframe
 		hAccelTable_ = LoadAcceleratorsW(hInstance_, MAKEINTRESOURCE(IDR_ACCELERATOR));
 
 		// set window class name
-		if (sWindowClassName_.empty())
+		if (Window::sWindowClassName_.empty())
 			this->SetWindowClassName();
 
 		// register window class
@@ -148,9 +149,15 @@ namespace winxframe
 		// show and update window
 		ShowWindow(hWindow_, nCmdShow);
 		UpdateWindow(hWindow_);
+
+		// increment window count
+		if (pumpMode_ == MessagePumpMode::RealTime)
+			++Window::sRealTimeWindowCount_;
+		if (pumpMode_ == MessagePumpMode::EventDriven)
+			++Window::sEventDrivenWindowCount_;
 	}
 
-	void Window::ProcessMessages(UINT wMsgFilterMin, UINT wMsgFilterMax) const noexcept
+	void Window::PeekMessages(UINT wMsgFilterMin, UINT wMsgFilterMax) const noexcept
 	{
 		MSG msg = {};
 		const HACCEL accelTable = hAccelTable_;
@@ -164,10 +171,47 @@ namespace winxframe
 		}
 	}
 
+	int Window::GetMessages(UINT wMsgFilterMin, UINT wMsgFilterMax) const noexcept
+	{
+		MSG msg{};
+		const HACCEL accelTable = hAccelTable_;
+		int returnValue = 0;
+
+		while ((returnValue = GetMessageW(&msg, nullptr, wMsgFilterMin, wMsgFilterMax)) > 0)
+		{
+			if (!accelTable || !TranslateAcceleratorW(msg.hwnd, accelTable, &msg))
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
+		}
+
+		return (returnValue == 0);
+	}
+
 	LRESULT Window::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)
 	{
 		switch (uMsg)
 		{
+		case WM_CREATE:
+		{
+			std::wcout << L"CASE: WM_CREATE" << L'\n';
+			if (pumpMode_ == MessagePumpMode::RealTime)
+			{
+				hwndFPSLabel_ = CreateWindowW(
+					L"STATIC", L"FPS:",
+					WS_VISIBLE | WS_CHILD,
+					10, 10, 40, 20,
+					hWindow_, nullptr, nullptr, nullptr);
+
+				hwndFPSValue_ = CreateWindowW(
+					L"STATIC", L"0",
+					WS_VISIBLE | WS_CHILD,
+					60, 10, 40, 20,
+					hWindow_, nullptr, nullptr, nullptr);
+			}
+			return 0;
+		}
 		case WM_KEYUP:
 		case WM_KEYDOWN:
 		{
@@ -183,16 +227,13 @@ namespace winxframe
 		case WM_SIZE:
 			std::wcout << L"CASE: WM_SIZE" << L'\n';
 			std::wcout << LOWORD(lParam) << L'x' << HIWORD(lParam) << L'\n';
-			windowWidth_ = LOWORD(lParam);
-			windowHeight_ = HIWORD(lParam);
+			this->SetWindowSize(LOWORD(lParam), HIWORD(lParam));
 			return 0;
-		case WM_CLOSE:
-			std::wcout << L"CASE: WM_CLOSE" << L'\n';
-			if (MessageBoxW(hWindow_, L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
-			{
-				this->Cleanup();
-				DestroyWindow(hWindow_);
-			}
+		case WM_SETFOCUS:
+			std::wcout << L"CASE: WM_SETFOCUS\n";
+			return 0;
+		case WM_KILLFOCUS:
+			std::wcout << L"CASE: WM_KILLFOCUS\n";
 			return 0;
 		case WM_COMMAND:
 			std::wcout << L"CASE: WM_COMMAND" << L'\n';
@@ -205,30 +246,41 @@ namespace winxframe
 			case IDM_EXIT:
 				std::wcout << L"CASE: IDM_EXIT" << L'\n';
 				if (MessageBoxW(hWindow_, L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
-				{
-					this->Cleanup();
 					DestroyWindow(hWindow_);
-				}
 				return 0;
 			}
 			return 0;
-		case WM_SETFOCUS:
-			std::wcout << L"CASE: WM_SETFOCUS\n";
-			return 0;
-		case WM_KILLFOCUS:
-			std::wcout << L"CASE: WM_KILLFOCUS\n";
+		case WM_CLOSE:
+			std::wcout << L"CASE: WM_CLOSE" << L'\n';
+			if (MessageBoxW(hWindow_, L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+				DestroyWindow(hWindow_);
 			return 0;
 		case WM_DESTROY:
 			std::wcout << L"CASE: WM_DESTROY\n";
-			PostQuitMessage(0);
+			this->CleanupWindowResources();
+
+			if (pumpMode_ == MessagePumpMode::RealTime)
+			{
+				--Window::sRealTimeWindowCount_;
+				if (Window::sEventDrivenWindowCount_ == 0 && Window::sRealTimeWindowCount_ == 0)
+				{
+					PostQuitMessage(0);
+				}
+			}
+			if (pumpMode_ == MessagePumpMode::EventDriven)
+			{
+				--Window::sEventDrivenWindowCount_;
+				if (Window::sEventDrivenWindowCount_ == 0 && Window::sRealTimeWindowCount_ == 0)
+				{
+					PostQuitMessage(0);
+				}
+			}
 			return 0;
 		case WM_NCDESTROY:
-		{
 			std::wcout << L"CASE: WM_NCDESTROY\n";
 			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
 			hWindow_ = nullptr;
 			return 0;
-		}
 		default:
 			return DefWindowProcW(hWindow_, uMsg, wParam, lParam);
 		}
@@ -300,7 +352,7 @@ namespace winxframe
 
 	void Window::UnregisterWindowClass() // static
 	{
-		if (Window::sWindowCount_ == 0 && Window::sIsClassRegistered_)
+		if (Window::sRealTimeWindowCount_ == 0 && Window::sEventDrivenWindowCount_ == 0 && Window::sIsClassRegistered_)
 		{
 			THROW_IF_ERROR_CTX(!UnregisterClassW(Window::sWindowClass_.lpszClassName, Window::sWindowClass_.hInstance), L"Failed to unregister the window class!");
 			Window::sWindowClass_ = {};
@@ -546,12 +598,24 @@ namespace winxframe
 		}
 	}
 
+	void Window::CleanupWindowResources()
+	{
+		if (isWindowCleaned_)
+			return;
+
+		std::wcout << L"CLEANUP: Running window cleanup.\n";
+
+		this->CleanupRawDevices();
+
+		isWindowCleaned_ = true;
+	}
+
 	void Window::Cleanup()
 	{
 		if (isCleaned_)
 			return;
 
-		this->CleanupRawDevices();
+		std::wcout << L"CLEANUP: Running general cleanup.\n";
 
 		if (hAccelTable_)
 		{
@@ -586,5 +650,12 @@ namespace winxframe
 		}
 		if (hWindow_)
 			SetWindowTextW(hWindow_, this->GetWindowTitle().c_str());
+	}
+
+	void Window::SetFPS(double fps) noexcept
+	{
+		fps_ = fps;
+		std::wstring fpsText = std::to_wstring((int)fps_);
+		SetWindowTextW(hwndFPSValue_, fpsText.c_str());
 	}
 }; // end of namespace winxframe

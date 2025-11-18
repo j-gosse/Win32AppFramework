@@ -112,6 +112,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -128,6 +129,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>Winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -152,7 +154,9 @@
     <ClInclude Include="lib\include\win32\targetver.h" />
     <ClInclude Include="lib\include\win32\utils\win32_utils.hpp" />
     <ClInclude Include="lib\include\win32\Window\HidUsage.hpp" />
+    <ClInclude Include="lib\include\win32\Window\MessagePumpMode.hpp" />
     <ClInclude Include="lib\include\win32\Window\Window.hpp" />
+    <ClInclude Include="lib\include\win32\Window\window_manager.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\source\TestSuite\TestSuite.cpp" />
@@ -162,6 +166,7 @@
     <ClCompile Include="lib\source\win32\Error\Error.cpp" />
     <ClCompile Include="lib\source\win32\win32_platform.cpp" />
     <ClCompile Include="lib\source\win32\Window\Window.cpp" />
+    <ClCompile Include="lib\source\win32\Window\window_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="lib\source\win32\res\resource_script.rc" />

@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\win32_platform.cpp
 Created: October 5, 2025
-Updated: November 15, 2025
+Updated: November 18, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Win32 Platform source file.
@@ -18,14 +18,28 @@ Win32 Platform is the main (wWinMain) entry point for the application.
 
 using namespace winxframe;
 
+// derived window class test
 class MyWindow : public Window
 {
 public:
-    MyWindow(const std::wstring& title = L"", LONG windowWidth = WINDOW_WIDTH, LONG windowHeight = WINDOW_HEIGHT)
-        : Window(title, windowWidth, windowHeight) {}
+    MyWindow(
+        const std::wstring& title = L"",
+        LONG windowWidth = WINDOW_WIDTH,
+        LONG windowHeight = WINDOW_HEIGHT,
+        MessagePumpMode mode = MessagePumpMode::RealTime
+    )
+        : Window(title, windowWidth, windowHeight, mode) {
+    }
 
-    MyWindow(HINSTANCE hInstance, const std::wstring& title = L"", LONG windowWidth = WINDOW_WIDTH, LONG windowHeight = WINDOW_HEIGHT)
-        : Window(hInstance, title, windowWidth, windowHeight) {}
+    MyWindow(
+        HINSTANCE hInstance,
+        const std::wstring& title = L"",
+        LONG windowWidth = WINDOW_WIDTH,
+        LONG windowHeight = WINDOW_HEIGHT,
+        MessagePumpMode mode = MessagePumpMode::RealTime
+    )
+        : Window(hInstance, title, windowWidth, windowHeight, mode) {
+    }
 
     ~MyWindow() override
     {
@@ -34,18 +48,14 @@ public:
 
     void Update(std::chrono::nanoseconds deltaTime) override
     {
+        UNREFERENCED_PARAMETER(deltaTime);
         // update logic
         //std::wcout << L"Updating window: " << deltaTime.count() << L" ns\n";
     }
 
     void Render() override
     {
-        // render logic
-        /*
-            HDC dc = GetDC(this->GetWindow());
-            // draw stuff
-            ReleaseDC(this->GetWindow(), dc);
-        */
+        //InvalidateRect(GetWindow(), nullptr, FALSE);
     }
 };
 
@@ -74,10 +84,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         // init window
         LONG windowWidth = 800;
         LONG windowHeight = 600;
-        windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW1", windowWidth, windowHeight));
-        windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW2", 400, 400));
-        //MyWindow* window1 = new MyWindow(hInstance, L"WINDOW1", windowWidth, windowHeight);
-        //MyWindow* window2 = new MyWindow(hInstance, L"WINDOW2", 400, 400);
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW1", windowWidth, windowHeight, MessagePumpMode::EventDriven));
+        windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW2", windowWidth, windowHeight, MessagePumpMode::RealTime));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW3", windowWidth, windowHeight, MessagePumpMode::EventDriven));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW4", windowWidth, windowHeight, MessagePumpMode::RealTime));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW5", 400, 400, MessagePumpMode::EventDriven));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW6", 400, 400, MessagePumpMode::RealTime));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW7", 400, 400, MessagePumpMode::EventDriven));
+        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW8", 400, 400, MessagePumpMode::RealTime));
 
         // run unit tests
         winxframe::TestRegistry::RunAll();
@@ -98,67 +112,20 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         std::wcout << L"Entering the main loop...\n";
         OutputDebugStringW(L"Entering the main loop...\n");
 
-        /* Main Message Loop */
-        std::chrono::high_resolution_clock::time_point startTime, previousTime, currentTime;
-        std::chrono::nanoseconds elapsedTime{}, deltaTime{}, frameDuration{}, sleepTime{};
-        const std::chrono::nanoseconds targetFrameTime = std::chrono::milliseconds(16); // ~60 FPS
-
-        previousTime = std::chrono::high_resolution_clock::now();
-        startTime = previousTime;
-
-        while (!windows.empty())
+        /* Main Loop */
+        timeBeginPeriod(1); // sets system timer resolution to 1 ms
+        while (ManageWindows(windows))
         {
-            for (auto& w : windows)
-            {
-                w->ProcessMessages();
-            }
 
-            for (auto it = windows.begin(); it != windows.end(); )
-            {
-                if (!(*it)->GetWindow())
-                {
-                    it = windows.erase(it);
-                }
-                else
-                {
-                    ++it;
-                }
-            }
-
-            // track elapsed time and delta time
-            currentTime = std::chrono::high_resolution_clock::now();
-            deltaTime = currentTime - previousTime;  // time since last frame
-            elapsedTime = currentTime - startTime;
-            previousTime = currentTime;
-
-            // update/render loop for windows
-            for (auto& w : windows)
-            {
-                w->SetElapsed(elapsedTime);
-                //std::wcout << w->GetElapsed().count() << L'\n';
-
-                /*
-                // This is where the main loop logic or call to a update/render loop occurs. For example:
-                    w->Update(deltaTime);
-                    w->Render();
-                */
-            }
-
-            // limit framerate
-            frameDuration = std::chrono::high_resolution_clock::now() - currentTime;
-            if (frameDuration < targetFrameTime)
-            {
-                sleepTime = targetFrameTime > frameDuration ? targetFrameTime - frameDuration : std::chrono::nanoseconds(0);
-                std::this_thread::sleep_for(sleepTime);
-                //std::cout << "Sleep Time: " << sleepTime << '\n';
-            }
         }
-
-        // unregister the static window class
-        Window::UnregisterWindowClass();
+        timeEndPeriod(1);   // restore system timer resolution
+        /* End of Main Loop */
 
         std::wcout << L"Exiting the main loop...\n";
         OutputDebugStringW(L"Exiting the main loop...\n");
+
+        // unregister the static window class
+        Window::UnregisterWindowClass();
     }
     catch (const winxframe::Error& e)
     {
@@ -167,6 +134,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         std::wcerr << e.LogCauseChain();
         OutputDebugStringW(e.wwhat());
         OutputDebugStringW(e.LogCauseChain().c_str());
+
+        if (!windows.empty())
+            windows.clear();
+
         std::wcout << L"Program exit failure. Press any key to continue..." << std::endl;
         _getch();
         console.reset();

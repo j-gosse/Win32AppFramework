@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: November 15, 2025
+Updated: November 18, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -14,7 +14,9 @@ Window header file.
 
 #include <win32/framework.h>
 #include <win32/resource.h>
-#include <win32/Window/HidUsage.hpp>
+#include <win32/Window/window_manager.hpp>
+#include "MessagePumpMode.hpp"
+#include "HidUsage.hpp"
 
 namespace winxframe
 {
@@ -27,16 +29,19 @@ namespace winxframe
 		HWND hWindow_;
 		static WNDCLASSEX sWindowClass_;
 		static bool sIsClassRegistered_;
-		static unsigned int sWindowCount_;
 		HINSTANCE hInstance_;
 		HACCEL hAccelTable_;
 		std::vector<RAWINPUTDEVICE> rawInputDevices_;
 		STARTUPINFO startupInfo_;
 		PROCESS_INFORMATION processInfo_;
 		SYSTEM_INFO systemInfo_;
+		MessagePumpMode pumpMode_;
 
 		std::wstring windowTitle_;
 		static std::wstring sWindowClassName_;
+
+		static unsigned int sRealTimeWindowCount_;
+		static unsigned int sEventDrivenWindowCount_;
 
 		LONG windowWidth_;
 		LONG windowHeight_;
@@ -44,9 +49,12 @@ namespace winxframe
 		ULONG desktopHeight_ = GetSystemMetrics(SM_CYSCREEN);
 
 		std::chrono::nanoseconds elapsedTime_;
+		double fps_ = 0.0;
+		HWND hwndFPSLabel_ = nullptr;
+		HWND hwndFPSValue_ = nullptr;
 
 		bool isCleaned_ = false;
-		bool isWindowValid = false;
+		bool isWindowCleaned_ = false;
 
 		/**
 		* @brief	Initialize window properties and create the window.
@@ -119,7 +127,12 @@ namespace winxframe
 		void CleanupRawDevices();
 
 		/**
-		* @brief	Clean and release any internal window resources before the window is destroyed.
+		* @brief	Clean and release any internal resources associated with the window handle.
+		*/
+		void CleanupWindowResources();
+
+		/**
+		* @brief	Clean and release any other internal resources not associated with the window handle.
 		*/
 		void Cleanup();
 
@@ -129,8 +142,14 @@ namespace winxframe
 		* @param	const std::wstring& title	: Title of the window.
 		* @param	LONG windowWidth			: Width of the window in pixels.
 		* @param	LONG windowHeight			: Height of the window in pixels.
+		* @param	MessageLoopMode mode		: Determines if the window is in real time or event driven mode.
 		*/
-		Window(const std::wstring& windowTitle = L"", LONG windowWidth = WINDOW_WIDTH, LONG windowHeight = WINDOW_HEIGHT);
+		Window(
+			const std::wstring& windowTitle = L"", 
+			LONG windowWidth = WINDOW_WIDTH, 
+			LONG windowHeight = WINDOW_HEIGHT, 
+			MessagePumpMode mode = MessagePumpMode::RealTime
+		);
 
 		/**
 		* @brief	HINSTANCE Window Constructor.
@@ -138,8 +157,15 @@ namespace winxframe
 		* @param	const std::wstring& title	: Title of the window.
 		* @param	LONG windowWidth			: Width of the window in pixels.
 		* @param	LONG windowHeight			: Height of the window in pixels.
+		* @param	MessageLoopMode mode		: Determines if the window is in real time or event driven mode.
 		*/
-		Window(HINSTANCE hInstance, const std::wstring& windowTitle = L"", LONG windowWidth = WINDOW_WIDTH, LONG windowHeight = WINDOW_HEIGHT);
+		Window(
+			HINSTANCE hInstance, 
+			const std::wstring& windowTitle = L"", 
+			LONG windowWidth = WINDOW_WIDTH, 
+			LONG windowHeight = WINDOW_HEIGHT,
+			MessagePumpMode mode = MessagePumpMode::RealTime
+		);
 
 		/**
 		* @brief	Copy constructor. (deleted)
@@ -192,12 +218,20 @@ namespace winxframe
 		virtual void Render() = 0;
 
 		/**
-		* @brief	Process queued messages sent to the window. If wMsgFilterMin and wMsgFilterMax are both zero,
-					PeekMessage returns all available messages (no range filtering is performed).
+		* @brief	Dispatches incoming nonqueued messages, checks the thread message queue for a posted message, and retrieves the message.
+		*			If wMsgFilterMin and wMsgFilterMax are both zero, returns all available messages.
 		* @param	UINT wMsgFilterMin : The value of the first message in the range of messages to be examined.
 		* @param	UINT wMsgFilterMax : The value of the last message in the range of messages to be examined.
 		*/
-		void ProcessMessages(UINT wMsgFilterMin = 0, UINT wMsgFilterMax = 0) const noexcept;
+		void PeekMessages(UINT wMsgFilterMin = 0, UINT wMsgFilterMax = 0) const noexcept;
+
+		/**
+		* @brief	Retrieves a message from the calling thread's message queue. Dispatches incoming sent messages until a posted message is available for retrieval.
+		*			If wMsgFilterMin and wMsgFilterMax are both zero, returns all available messages.
+		* @param	UINT wMsgFilterMin : The value of the first message in the range of messages to be examined.
+		* @param	UINT wMsgFilterMax : The value of the last message in the range of messages to be examined.
+		*/
+		int GetMessages(UINT wMsgFilterMin = 0, UINT wMsgFilterMax = 0) const noexcept;
 
 		/**
 		* @brief	Unregister the static window class.
@@ -209,6 +243,11 @@ namespace winxframe
 		* @return	HWND hWindow_
 		*/
 		HWND GetWindow() const noexcept { return hWindow_; }
+
+		/**
+		* @brief	Returns the current message pump mode for the window.
+		*/
+		MessagePumpMode GetPumpMode() const noexcept { return pumpMode_; }
 
 		/**
 		* @brief	Returns the name of the window class WNDCLASSEX structure.
@@ -245,6 +284,21 @@ namespace winxframe
 		* @param	std::chrono::nanoseconds elapsed : The elapsed time in nanoseconds.
 		*/
 		void SetElapsed(std::chrono::nanoseconds elapsed) noexcept { elapsedTime_ = elapsed; }
+
+		/**
+		* @brief	Returns the current frames per second value.
+		* @return	double fps_
+		*/
+		double GetFPS() const noexcept { return fps_; }
+
+		/**
+		* @brief	Sets the current frames per second value.
+		* @param	double fps : frames per second
+		*/
+		void SetFPS(double fps) noexcept;
+
+		static unsigned int GetRealTimeWindowCount() { return Window::sRealTimeWindowCount_; }
+		static unsigned int GetEventDrivenWindowCount() { return Window::sEventDrivenWindowCount_; }
 
 	protected:
 		/**
@@ -300,14 +354,14 @@ namespace winxframe
 		void SetRawInputDevices(const std::vector<RAWINPUTDEVICE>& devices) noexcept { rawInputDevices_ = devices; }
 
 		/**
-		* @brief	Returns the width of the Window.
+		* @brief	Returns the width of the window.
 		* @return	LONG windowWidth_
 		*/
 		LONG GetWindowWidth() const noexcept { return windowWidth_; }
 
 		/**
 		* @brief	Sets the width the Window.
-		* @param	LONG width : The width of the Window in pixels.
+		* @param	LONG width : The width of the window in pixels.
 		*/
 		void SetWindowWidth(LONG width) noexcept { windowWidth_ = width; }
 
@@ -319,9 +373,16 @@ namespace winxframe
 
 		/**
 		* @brief	Sets the height of the Window.
-		* @param	LONG height : The height of the Window in pixels.
+		* @param	LONG height : The height of the window in pixels.
 		*/
 		void SetWindowHeight(LONG height) noexcept { windowHeight_ = height; }
+
+		/**
+		* @brief	Sets the width and height of the window.
+		* @param	LONG width : The width of the window in pixels.
+		* @param	LONG height : The height of the window in pixels.
+		*/
+		void SetWindowSize(LONG width, LONG height) noexcept { windowWidth_ = width; windowHeight_ = height; }
 
 		/**
 		* @brief	Returns the width of the Desktop screen.
@@ -336,16 +397,16 @@ namespace winxframe
 		ULONG GetDesktopHeight() const noexcept { return desktopHeight_; }
 
 		/**
-		* @brief	Returns the boolean value checking if Window cleanup has been run.
+		* @brief	Returns the boolean value checking if general cleanup has been performed.
 		* @return	bool isCleaned_
 		*/
 		bool IsCleaned() const noexcept { return isCleaned_; }
 
 		/**
-		* @brief	Sets the isCleaned boolean value.
-		* @param	bool isCleaned : The boolean value checking if Window cleanup has been run.
+		* @brief	Returns the boolean value checking if window cleanup has been performed.
+		* @return	bool isWindowCleaned_
 		*/
-		void SetIsCleaned(bool isCleaned) noexcept { isCleaned_ = isCleaned; }
+		bool IsWindowCleaned() const noexcept { return isWindowCleaned_; }
 	};
 }; // end of namespace winxframe
 

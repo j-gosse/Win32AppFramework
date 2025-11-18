@@ -134,6 +134,12 @@
     <ClInclude Include="lib\include\win32\Window\HidUsage.hpp">
       <Filter>Header Files\lib\win32\Window</Filter>
     </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\MessagePumpMode.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\window_manager.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\source\win32\win32_platform.cpp">
@@ -156,6 +162,9 @@
     </ClCompile>
     <ClCompile Include="lib\source\TestSuite\tests\string_tests.cpp">
       <Filter>Source Files\lib\TestSuite\tests</Filter>
+    </ClCompile>
+    <ClCompile Include="lib\source\win32\Window\window_manager.cpp">
+      <Filter>Source Files\lib\win32\Window</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

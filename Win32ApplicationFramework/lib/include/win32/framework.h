@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\framework.h
 Created: October 5, 2025
-Updated: November 10, 2025
+Updated: November 18, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Framework header file. Include file for standard system include files, or project specific include files.
@@ -17,6 +17,9 @@ Framework header file. Include file for standard system include files, or projec
 #define WIN32_LEAN_AND_MEAN	// Exclude rarely-used stuff from Windows headers
 #define NOMINMAX			// Exclude windows.h min/max macro definitions
 
+// tells the linker to include the library, can also be included in additional dependencies (Linker -> Input -> Additional Dependencies)
+//#pragma comment(lib, "Winmm.lib")
+
 constexpr const size_t MAX_LOADSTRING = 100;
 
 // Windows Headers
@@ -24,6 +27,7 @@ constexpr const size_t MAX_LOADSTRING = 100;
 #include <io.h>
 #include <conio.h>			// _getch()
 #include <lmcons.h>			// UNLEN and MAX_COMPUTERNAME_LENGTH
+#include <timeapi.h>		// timeBeginPeriod() and timeEndPeriod()
 
 // C RunTime Headers
 #include <stdlib.h>
