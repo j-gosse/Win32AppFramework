@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\win32_platform.cpp
 Created: October 5, 2025
-Updated: November 18, 2025
+Updated: November 20, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Win32 Platform source file.
@@ -14,34 +14,33 @@ Win32 Platform is the main (wWinMain) entry point for the application.
 #include <win32/Window/Window.hpp>
 #include <win32/Error/error_macros.hpp>
 #include <TestSuite/TestSuite.hpp>
+#include <win32/utils/win32_utils.hpp>
 #include <utils/string_utils.hpp>
 
 using namespace winxframe;
 
 // derived window class test
-class MyWindow : public Window
+class TestWindow : public Window
 {
 public:
-    MyWindow(
+    TestWindow(
         const std::wstring& title = L"",
         LONG windowWidth = WINDOW_WIDTH,
         LONG windowHeight = WINDOW_HEIGHT,
         MessagePumpMode mode = MessagePumpMode::RealTime
     )
-        : Window(title, windowWidth, windowHeight, mode) {
-    }
+        : Window(title, windowWidth, windowHeight, mode) {}
 
-    MyWindow(
+    TestWindow(
         HINSTANCE hInstance,
         const std::wstring& title = L"",
         LONG windowWidth = WINDOW_WIDTH,
         LONG windowHeight = WINDOW_HEIGHT,
         MessagePumpMode mode = MessagePumpMode::RealTime
     )
-        : Window(hInstance, title, windowWidth, windowHeight, mode) {
-    }
+        : Window(hInstance, title, windowWidth, windowHeight, mode) {}
 
-    ~MyWindow() override
+    ~TestWindow() override
     {
         std::wcout << L"DESTRUCTOR: ~MyWindow()\n";
     }
@@ -55,7 +54,12 @@ public:
 
     void Render() override
     {
-        //InvalidateRect(GetWindow(), nullptr, FALSE);
+        if (!GetMemoryBitmap())
+            return;
+
+        BeginFrame();
+        win32_utils::RenderFPS(GetMemoryDC(), GetFPS());
+        Present();
     }
 };
 
@@ -77,21 +81,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
     // windows vector
     std::vector<std::unique_ptr<Window>> windows;
 
-    try {
+    try
+    {
         // init console
         console = std::make_unique<winxframe::Console>(hInstance, L"CONSOLE", consoleSize.X, consoleSize.Y);
 
-        // init window
+        // init window(s)
         LONG windowWidth = 800;
         LONG windowHeight = 600;
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW1", windowWidth, windowHeight, MessagePumpMode::EventDriven));
-        windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW2", windowWidth, windowHeight, MessagePumpMode::RealTime));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW3", windowWidth, windowHeight, MessagePumpMode::EventDriven));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW4", windowWidth, windowHeight, MessagePumpMode::RealTime));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW5", 400, 400, MessagePumpMode::EventDriven));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW6", 400, 400, MessagePumpMode::RealTime));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW7", 400, 400, MessagePumpMode::EventDriven));
-        //windows.push_back(std::make_unique<MyWindow>(hInstance, L"WINDOW8", 400, 400, MessagePumpMode::RealTime));
+        windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW1", windowWidth, windowHeight, MessagePumpMode::RealTime));
+        //windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW2", 600, 400, MessagePumpMode::RealTime));
+        //windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW3", 400, 200, MessagePumpMode::EventDriven));
 
         // run unit tests
         winxframe::TestRegistry::RunAll();
@@ -100,29 +100,26 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         console->WriteText(L"This is a really really really really really really really really long line that if necessary will be written across multiple lines based on the width of the console buffer. Does not wrap words.");
         console->WriteText(L"gggg", console_color::RED);
         console->WriteText(L"1111", console_color::BRIGHT_RED);
-        console->WriteText(L"gggg");
-        console->WriteText(L"gggg\n\n\n\n");
-        console->WriteText(L"gggg", console_color::WHITE_ON_RED);
         console->WriteText(L"gggg", console_color::BRIGHT_WHITE);
-        console->WriteText(L"1111\n");
-        console->WriteText(L"gggg\n", console_color::WHITE_ON_GREEN);
         std::cout << console_color::WhiteOnRed << "cout stream color test 1\n" << console_color::Default;
         std::cout << console_color::WhiteOnGreen << "cout stream color test 2\n" << console_color::Default;
 
+        /* Main Loop */
         std::wcout << L"Entering the main loop...\n";
         OutputDebugStringW(L"Entering the main loop...\n");
 
-        /* Main Loop */
         timeBeginPeriod(1); // sets system timer resolution to 1 ms
+
         while (ManageWindows(windows))
         {
 
         }
+
         timeEndPeriod(1);   // restore system timer resolution
-        /* End of Main Loop */
 
         std::wcout << L"Exiting the main loop...\n";
         OutputDebugStringW(L"Exiting the main loop...\n");
+        /* End of Main Loop */
 
         // unregister the static window class
         Window::UnregisterWindowClass();

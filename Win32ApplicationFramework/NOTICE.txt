@@ -1,12 +1,12 @@
 \project    Win32ApplicationFramework
-\version    PRE-ALPHA 2.1
+\version    PRE-ALPHA 2.2
 \desc	    A lightweight C++ framework that encapsulates core Win32 API functionality 
             for console and window creation, message loops, and error handling. 
             Includes a suite for unit testing and various helper utilities. 
             Ideal as a foundation for GUI apps, game engines, debug utils, etc.
 \author     Jacob Gosse
 \created    October 5, 2025
-\updated    November 18, 2025
+\updated    November 20, 2025
 
 \MSVC       /std:c++20
 \GNUC       -m64 -std=c++20

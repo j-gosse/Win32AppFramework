@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\utils\win32_utils.hpp
 Created: October 26, 2025
-Updated: November 18, 2025
+Updated: November 20, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Win32 Utilities header file.
@@ -20,6 +20,30 @@ namespace winxframe
 {
     namespace win32_utils
     {
+    #pragma region Rendering
+        inline void RenderFPS(HDC hMemoryDC, double fps)
+        {
+            if (!hMemoryDC)
+                return;
+
+            wchar_t fpsText[32];
+            swprintf_s(fpsText, 32, L"FPS: %d", (int)std::round(fps));
+
+            HFONT oldFont = (HFONT)SelectObject(hMemoryDC, GetStockObject(DEFAULT_GUI_FONT));
+            SetBkMode(hMemoryDC, TRANSPARENT);
+            SetTextColor(hMemoryDC, RGB(255, 255, 255)); // white text
+
+            SIZE textSize;
+            GetTextExtentPoint32W(hMemoryDC, fpsText, (int)wcslen(fpsText), &textSize);
+
+            const int x = 10;
+            const int y = 10;
+            TextOutW(hMemoryDC, x, y, fpsText, (int)wcslen(fpsText));
+
+            SelectObject(hMemoryDC, oldFont);
+        }
+    #pragma endregion
+
     #pragma region Format System Message
         inline std::wstring FormatSysMessageW(DWORD msgId)
         {
