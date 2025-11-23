@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: November 15, 2025
+Updated: November 22, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -9,6 +9,7 @@ Error source file.
 
 #include <win32/Error/Error.hpp>
 #include <win32/utils/win32_utils.hpp>
+#include <utils/string_utils.hpp>
 #include <thread>
 
 namespace winxframe

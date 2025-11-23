@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: November 20, 2025
+Updated: November 22, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -14,7 +14,6 @@ Window header file.
 
 #include <win32/framework.h>
 #include <win32/resource.h>
-#include <win32/Window/window_manager.hpp>
 #include "MessagePumpMode.hpp"
 #include "HidUsage.hpp"
 
@@ -29,29 +28,24 @@ namespace winxframe
 		HWND hWindow_ = nullptr;
 		HINSTANCE hInstance_;
 		HACCEL hAccelTable_ = nullptr;
+		int showCmd_ = SW_SHOWDEFAULT;
 
-		HDC     hMemoryDC_ = nullptr;
+		HDC hMemoryDC_ = nullptr;
 		HBITMAP hMemoryBitmap_ = nullptr;
 		HBITMAP hOldMemoryBitmap_ = nullptr;
 
 		std::vector<RAWINPUTDEVICE> rawInputDevices_;
-		STARTUPINFO startupInfo_{};
-		PROCESS_INFORMATION processInfo_{};
-		SYSTEM_INFO systemInfo_{};
 		MessagePumpMode pumpMode_;
 
 		std::wstring windowTitle_;
+		LONG screenWidth_;
+		LONG screenHeight_;
+
 		static std::wstring sWindowClassName_;
 		static WNDCLASSEX sWindowClass_;
 		static bool sIsClassRegistered_;
-
 		static unsigned int sRealTimeWindowCount_;
 		static unsigned int sEventDrivenWindowCount_;
-
-		LONG windowWidth_;
-		LONG windowHeight_;
-		ULONG desktopWidth_ = GetSystemMetrics(SM_CXSCREEN);
-		ULONG desktopHeight_ = GetSystemMetrics(SM_CYSCREEN);
 
 		std::chrono::nanoseconds elapsedTime_;
 		double fps_ = 0.0;
@@ -75,17 +69,6 @@ namespace winxframe
 		* @return	ATOM result (0 or 1)
 		*/
 		ATOM RegisterWindowClass(int extraClassBytes = 0, int extraWindowBytes = 0) const;
-
-		/**
-		* @brief	Initialize STARTUPINFO properties.
-		*/
-		STARTUPINFO InitStartupInfo() noexcept;
-
-		/**
-		* @brief	Set the STARTUPINFO structure.
-		* @param	const STARTUPINFO& si : The startup info structure to be applied to the member variable.
-		*/
-		void SetStartupInfo(const STARTUPINFO& si) noexcept { startupInfo_ = si; }
 
 		/**
 		* @brief	Create a window using the specified values.
@@ -121,16 +104,7 @@ namespace winxframe
 		/**
 		* @brief	Increment the real-time or event-driven static window count based on current window pump mode.
 		*/
-		void IncrementWindowCount() const;
-
-		/**
-		* @brief	Handle messages sent to the window on a switch-case basis.
-		* @param	UINT uMsg		: The message identifier. This parameter specifies which message is being sent to the window.
-		* @param	WPARAM wParam	: Provides additional message-specific information. Indicates whether the window was minimized, maximized, or resized.
-		* @param	LPARAM lParam	: Provides additional message-specific information. Contains the new width and height of the window.
-		* @return	DefWindowProcW(hWindow_, uMsg, wParam, lParam) when default switch case or return 0 when switch case successful
-		*/
-		LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+		void IncrementWindowCount() const noexcept;
 
 		/**
 		* @brief	Callback function to process event messages sent to the window.
@@ -151,16 +125,6 @@ namespace winxframe
 		* @return	TRUE when switch case or FALSE otherwise
 		*/
 		static INT_PTR CALLBACK About(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam) noexcept;
-
-		/**
-		* @brief	Retrieve username, computer name, processor architecture and CPU information.
-		*/
-		void SysInfo();
-
-		/**
-		* @brief	Retrieve logical processor count and relationships.
-		*/
-		void ProcessorInfo();
 
 		/**
 		* @brief	Release and delete the memory bitmap and memory bitmap device context handle.
@@ -186,37 +150,39 @@ namespace winxframe
 		/**
 		* @brief	Decrement real-time or event-driven static window count based on current window pump mode.
 		*/
-		void DecrementWindowCount() const;
+		void DecrementWindowCount() const noexcept;
 
 	public:
 		/**
 		* @brief	Default Window Constructor.
 		* @param	const std::wstring& title	: Title of the window.
-		* @param	LONG windowWidth			: Width of the window in pixels.
-		* @param	LONG windowHeight			: Height of the window in pixels.
+		* @param	LONG screenWidth			: Width of the window client area in pixels.
+		* @param	LONG screenHeight			: Height of the window client area in pixels.
 		* @param	MessageLoopMode mode		: Determines if the window is in real time or event driven mode.
 		*/
 		Window(
 			const std::wstring& windowTitle = L"", 
-			LONG windowWidth = WINDOW_WIDTH, 
-			LONG windowHeight = WINDOW_HEIGHT, 
-			MessagePumpMode mode = MessagePumpMode::RealTime
+			LONG screenWidth = DEFAULT_SCREEN_WIDTH, 
+			LONG screenHeight = DEFAULT_SCREEN_HEIGHT, 
+			MessagePumpMode mode = MessagePumpMode::RealTime,
+			int nCmdShow = SW_SHOWDEFAULT
 		);
 
 		/**
 		* @brief	HINSTANCE Window Constructor.
 		* @param	HINSTANCE hInstance			: A handle to the window instance module.
 		* @param	const std::wstring& title	: Title of the window.
-		* @param	LONG windowWidth			: Width of the window in pixels.
-		* @param	LONG windowHeight			: Height of the window in pixels.
+		* @param	LONG screenWidth			: Width of the window client area in pixels.
+		* @param	LONG screenHeight			: Height of the window client area in pixels.
 		* @param	MessageLoopMode mode		: Determines if the window is in real time or event driven mode.
 		*/
 		Window(
 			HINSTANCE hInstance, 
 			const std::wstring& windowTitle = L"", 
-			LONG windowWidth = WINDOW_WIDTH, 
-			LONG windowHeight = WINDOW_HEIGHT,
-			MessagePumpMode mode = MessagePumpMode::RealTime
+			LONG screenWidth = DEFAULT_SCREEN_WIDTH,
+			LONG screenHeight = DEFAULT_SCREEN_HEIGHT,
+			MessagePumpMode mode = MessagePumpMode::RealTime,
+			int nCmdShow = SW_SHOWDEFAULT
 		);
 
 		/**
@@ -249,14 +215,14 @@ namespace winxframe
 		virtual ~Window() noexcept;
 
 		/**
-		* @brief	Default window width in pixels.
+		* @brief	Default window client area width in pixels.
 		*/
-		static constexpr WORD WINDOW_WIDTH = 800;
+		static constexpr WORD DEFAULT_SCREEN_WIDTH = 800;
 
 		/**
-		* @brief	Default window height in pixels.
+		* @brief	Default window client area height in pixels.
 		*/
-		static constexpr WORD WINDOW_HEIGHT = 600;
+		static constexpr WORD DEFAULT_SCREEN_HEIGHT = 600;
 
 		/**
 		* @brief	Virtual Update method. Override in a derived class.
@@ -293,13 +259,13 @@ namespace winxframe
 
 		/**
 		* @brief	Return the window handle.
-		* @return	HWND hWindow_
+		* @return	Window handle.
 		*/
 		HWND GetWindow() const noexcept { return hWindow_; }
 
 		/**
 		* @brief	Return the memory device context that has the backbuffer bitmap selected into it.
-		* @return	HDC hMemoryDC_
+		* @return	Handle to a device context for memory bitmap.
 		*/
 		HDC GetMemoryDC() const noexcept { return hMemoryDC_; }
 
@@ -333,6 +299,40 @@ namespace winxframe
 		void SetWindowTitle(const std::wstring& title = L"") noexcept;
 
 		/**
+		* @brief	Return the width of the window client area.
+		* @return	LONG screenWidth_
+		*/
+		LONG GetScreenWidth() const noexcept { return screenWidth_; }
+
+		/**
+		* @brief	Return the height of the window client area.
+		* @return	LONG screenHeight_
+		*/
+		LONG GetScreenHeight() const noexcept { return screenHeight_; }
+
+		/**
+		* @brief	Return the width of the entire window.
+		* @return	LONG window width
+		*/
+		LONG GetWindowWidth() const noexcept { RECT r; GetWindowRect(hWindow_, &r); return r.right - r.left; }
+
+		/**
+		* @brief	Return the height of the entire window.
+		* @return	LONG window height
+		*/
+		LONG GetWindowHeight() const noexcept { RECT r; GetWindowRect(hWindow_, &r); return r.bottom - r.top; }
+
+		/**
+		* @brief	Retrieve the window width and window height inclusive of non-client area and assign the values to the referenced outWidth and outHeight parameters.
+		* @param	LONG& outWidth	: Reference to the outer-scope width variable.
+		* @param	LONG& outHeight : Reference to the outer-scope height variable.
+		* @param	DWORD dwStyle	: Window styles specifier.
+		* @param	BOOL hasMenu	: Indicates whether the window has a menu.
+		* @param	DWORD dwExStyle : Extended window styles specifier.
+		*/
+		void GetWindowSize(LONG& outWidth, LONG& outHeight, DWORD dwStyle = WS_OVERLAPPEDWINDOW, BOOL hasMenu = TRUE, DWORD dwExStyle = 0) const noexcept;
+
+		/**
 		* @brief	Return the number of nanoseconds elapsed since the initialization of the application.
 		* @return	std::chrono::nanoseconds elapsedTime_
 		*/
@@ -358,17 +358,47 @@ namespace winxframe
 
 		/**
 		* @brief	Return the static real-time window counter.
-		* @return	static unsigned int sRealTimeWindowCount_
+		* @return	unsigned int sRealTimeWindowCount_
 		*/
 		static unsigned int GetRealTimeWindowCount() noexcept { return Window::sRealTimeWindowCount_; }
 
 		/**
 		* @brief	Return the static event-driven window counter.
-		* @return	static unsigned int sEventDrivenWindowCount_
+		* @return	unsigned int sEventDrivenWindowCount_
 		*/
 		static unsigned int GetEventDrivenWindowCount() noexcept { return Window::sEventDrivenWindowCount_; }
 
 	protected:
+		/**
+		* @brief	Virtual method called in WM_CREATE. Encapsulate any necessary window creation logic necessary for the base window class. 
+		*			Override in a derived class.
+		* @return	0 on success, nonzero or -1 may indicate error or failure.
+		*/
+		virtual LRESULT OnCreate();
+
+		/**
+		* @brief	Virtual method called in WM_DESTROY. Encapsulate any necessary window destruction logic necessary for the base window class.
+		*			Override in a derived class.
+		* @return	0 on success, nonzero or -1 may indicate error or failure.
+		*/
+		virtual LRESULT OnDestroy();
+
+		/**
+		* @brief	Handle messages sent to the window on a switch-case basis.
+		* @param	UINT uMsg		: The message identifier. This parameter specifies which message is being sent to the window.
+		* @param	WPARAM wParam	: Provides additional message-specific information. Indicates whether the window was minimized, maximized, or resized.
+		* @param	LPARAM lParam	: Provides additional message-specific information. Contains the new width and height of the window.
+		* @return	DefWindowProcW(hWindow_, uMsg, wParam, lParam) when default switch case or return 0 when switch case successful
+		*/
+		virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam);
+
+		/**
+		* @brief	Sets the window's show state. Updates the client area of the specified window by sending a 
+		*			WM_PAINT message to the window if the window's update region is not empty.
+		* @param	The show command, may be passed differently from window creation. Otherwise uses showCmd_ member variable.
+		*/
+		void ShowAndUpdateWindow(int nCmdShow = -1) const noexcept;
+
 		/**
 		* @brief	Reposition a window based on the leftX, topY and window width, window height.
 		* @param	int leftX		 : The left position of the window.
@@ -388,12 +418,6 @@ namespace winxframe
 		 * @brief	Copy the memory bitmap buffer to the window's device context.
 		 */
 		void Present() const;
-
-		/**
-		* @brief	Return a reference to the startup info struct.
-		* @return	STARTUPINFO& startupInfo_
-		*/
-		const STARTUPINFO& StartupInfo() const noexcept { return startupInfo_; }
 
 		/**
 		* @brief	Return the static Window WNDCLASSEX structure.
@@ -423,47 +447,23 @@ namespace winxframe
 		void SetRawInputDevices(T&& devices) noexcept { rawInputDevices_ = std::forward<T>(devices); }
 
 		/**
-		* @brief	Return the width of the window.
-		* @return	LONG windowWidth_
-		*/
-		LONG GetWindowWidth() const noexcept { return windowWidth_; }
-
-		/**
-		* @brief	Set the width the Window.
+		* @brief	Set the width of the window client area.
 		* @param	LONG width : The width of the window in pixels.
 		*/
-		void SetWindowWidth(LONG width) noexcept { windowWidth_ = width; }
+		void SetScreenWidth(LONG width) noexcept { screenWidth_ = width; }
 
 		/**
-		* @brief	Return the height of the window.
-		* @return	LONG windowHeight_
-		*/
-		LONG GetWindowHeight() const noexcept { return windowHeight_; }
-
-		/**
-		* @brief	Set the height of the Window.
+		* @brief	Set the height of the window client area.
 		* @param	LONG height : The height of the window in pixels.
 		*/
-		void SetWindowHeight(LONG height) noexcept { windowHeight_ = height; }
+		void SetScreenHeight(LONG height) noexcept { screenHeight_ = height; }
 
 		/**
-		* @brief	Set the width and height of the window.
+		* @brief	Set the width and height of the window client area.
 		* @param	LONG width : The width of the window in pixels.
 		* @param	LONG height : The height of the window in pixels.
 		*/
-		void SetWindowSize(LONG width, LONG height) noexcept { windowWidth_ = width; windowHeight_ = height; }
-
-		/**
-		* @brief	Return the width of the Desktop screen.
-		* @return	ULONG desktopWidth_
-		*/
-		ULONG GetDesktopWidth() const noexcept { return desktopWidth_; }
-
-		/**
-		* @brief	Return the height of the Desktop screen.
-		* @return	ULONG desktopHeight_
-		*/
-		ULONG GetDesktopHeight() const noexcept { return desktopHeight_; }
+		void SetScreenSize(LONG width, LONG height) noexcept { screenWidth_ = width; screenHeight_ = height; }
 
 		/**
 		* @brief	Return the boolean value checking if general cleanup has been performed.

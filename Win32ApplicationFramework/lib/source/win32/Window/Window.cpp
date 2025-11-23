@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: November 20, 2025
+Updated: November 22, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -9,20 +9,22 @@ Window source file.
 
 #include <win32/Window/Window.hpp>
 #include <win32/Error/error_macros.hpp>
+#include <win32/utils/win32_utils.hpp>
 
 namespace winxframe
 {
 	/* CONSTRUCTORS */
 
-	Window::Window(const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)
+	Window::Window(const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
 		try :
 		hInstance_(GetModuleHandleW(nullptr)),
+		showCmd_(win32_utils::ResolveShowCmd(nCmdShow)),
 		pumpMode_(mode),
 		windowTitle_(windowTitle),
-		windowWidth_(windowWidth),
-		windowHeight_(windowHeight)
+		screenWidth_(screenWidth),
+		screenHeight_(screenHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)\n";
+		std::wcout << L"CONSTRUCTOR: Window(const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode, int nCmdShow)\n";
 		this->InitWindow();
 	}
 	catch (const Error&)
@@ -36,15 +38,16 @@ namespace winxframe
 		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
 
-	Window::Window(HINSTANCE hInstance, const std::wstring& windowTitle, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)
+	Window::Window(HINSTANCE hInstance, const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
 		try :
 		hInstance_(hInstance),
+		showCmd_(win32_utils::ResolveShowCmd(nCmdShow)),
 		pumpMode_(mode),
 		windowTitle_(windowTitle),
-		windowWidth_(windowWidth),
-		windowHeight_(windowHeight)
+		screenWidth_(screenWidth),
+		screenHeight_(screenHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode)" << L'\n';
+		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, const std::wstring& title, LONG windowWidth, LONG windowHeight, MessagePumpMode mode, int nCmdShow)" << L'\n';
 		this->InitWindow();
 	}
 	catch (const Error&)
@@ -82,74 +85,41 @@ namespace winxframe
 	/* FUNCTION DEFINITIONS */
 
 #pragma region WINDOW CREATION
+	void Window::ShowAndUpdateWindow(int nCmdShow) const noexcept
+	{
+		if (nCmdShow == -1)
+			nCmdShow = showCmd_;
+			
+		ShowWindow(hWindow_, nCmdShow);
+		UpdateWindow(hWindow_);
+	}
+
 	void Window::InitWindow()
 	{
 		// system information
-		ZeroMemory(&processInfo_, sizeof(processInfo_));
-		ZeroMemory(&systemInfo_, sizeof(systemInfo_));
-		//this->SysInfo();
-		//this->ProcessorInfo();
+		//win32_utils::SysInfo();
+		//win32_utils::ProcessorInfo();
 
 		// load accelerator
 		hAccelTable_ = LoadAcceleratorsW(hInstance_, MAKEINTRESOURCE(IDR_ACCELERATOR));
 
-		// set window class name
-		if (Window::sWindowClassName_.empty())
-			this->SetWindowClassName();
-
 		// register window class
 		this->RegisterWindowClass();
 
-		// nCmdShow controls how the window is to be shown
-		// parameter is ignored the first time an application calls show window if STARTUPINFO structure specified
-		this->SetStartupInfo(this->InitStartupInfo());
-		int nCmdShow = this->StartupInfo().wShowWindow;
-
 		// properties for window creation
-		DWORD dwExStyle = 0;
-		LONG leftX = 0;
-		LONG topY = 0;
-		RECT rect = { leftX, topY, windowWidth_, windowHeight_ };
-		AdjustWindowRectEx(&rect, WS_OVERLAPPEDWINDOW, TRUE, dwExStyle);
-		LONG windowWidth = rect.right - rect.left;
-		LONG windowHeight = rect.bottom - rect.top;
-
-		// set window title
-		this->SetWindowTitle(this->GetWindowTitle());
+		LONG windowWidth;
+		LONG windowHeight;
+		this->GetWindowSize(windowWidth, windowHeight);
 
 		// create window
 		hWindow_ = this->BuildWindow(
 			this->GetWindowTitle(),
-			Window::sWindowClassName_,
+			Window::GetWindowClassName(),
 			windowWidth,
 			windowHeight,
 			WS_OVERLAPPEDWINDOW,	// window styles
 			0						// extended window styles
 		);
-
-		// create memory bitmap
-		this->CreateMemoryBitmap();
-
-		// register window to receive raw input from mouse and keyboard
-		this->RegisterRawInput(
-			{
-				{ HidUsagePage::GenericDesktopControls, HidUsageId::Mouse },
-				{ HidUsagePage::GenericDesktopControls, HidUsageId::Keyboard }
-			}//, RIDEV_INPUTSINK
-		);
-
-		// center window position relative to desktop resolution
-		int centerWidth = (desktopWidth_ - windowWidth) / 2;
-		int centerHeight = (desktopHeight_ - windowHeight) / 2;
-		UINT uFlags = SWP_SHOWWINDOW;
-		this->RepositionWindow(centerWidth, centerHeight, windowWidth, windowHeight, uFlags);
-
-		// show and update window
-		ShowWindow(hWindow_, nCmdShow);
-		UpdateWindow(hWindow_);
-
-		// increment window count
-		this->IncrementWindowCount();
 	}
 
 	void Window::SetWindowClassName(const std::wstring& className) const noexcept
@@ -178,20 +148,16 @@ namespace winxframe
 			SetWindowTextW(hWindow_, this->GetWindowTitle().c_str());
 	}
 
-	STARTUPINFO Window::InitStartupInfo() noexcept
-	{
-		STARTUPINFO startupInfo{};
-		startupInfo.cb = sizeof(startupInfo);
-		startupInfo.dwFlags = STARTF_USESHOWWINDOW;
-		startupInfo.wShowWindow = SW_SHOW;
-		return startupInfo;
-	}
-
 	ATOM Window::RegisterWindowClass(int extraClassBytes, int extraWindowBytes) const
 	{
 		if (sIsClassRegistered_)
 			return 1;
 
+		// window class name
+		if (Window::sWindowClassName_.empty())
+			this->SetWindowClassName();
+
+		// window class properties
 		Window::sWindowClass_.cbSize = sizeof(WNDCLASSEX);
 		Window::sWindowClass_.lpfnWndProc = Window::WindowProc;
 		Window::sWindowClass_.hInstance = hInstance_;
@@ -237,9 +203,9 @@ namespace winxframe
 
 	void Window::CreateMemoryBitmap()
 	{
-		THROW_IF_ERROR_CTX(windowWidth_ < 0 || windowHeight_ < 0, L"Window dimensions are invalid!");
+		THROW_IF_ERROR_CTX(screenWidth_ < 0 || screenHeight_ < 0, L"Window dimensions are invalid!");
 		THROW_IF_ERROR_CTX(!hWindow_, L"Window handle is invalid!");
-		if (windowWidth_ == 0 || windowHeight_ == 0)
+		if (screenWidth_ == 0 || screenHeight_ == 0)
 			return;
 
 		this->DestroyMemoryBitmap();
@@ -247,7 +213,7 @@ namespace winxframe
 		HDC hdc = GetDC(hWindow_);
 
 		hMemoryDC_ = CreateCompatibleDC(hdc);
-		hMemoryBitmap_ = CreateCompatibleBitmap(hdc, windowWidth_, windowHeight_);
+		hMemoryBitmap_ = CreateCompatibleBitmap(hdc, screenWidth_, screenHeight_);
 		hOldMemoryBitmap_ = (HBITMAP)SelectObject(hMemoryDC_, hMemoryBitmap_);
 
 		ReleaseDC(hWindow_, hdc);
@@ -272,12 +238,51 @@ namespace winxframe
 		this->SetRawInputDevices(std::move(rids));
 	}
 
-	void Window::IncrementWindowCount() const
+	void Window::IncrementWindowCount() const noexcept
 	{
 		if (pumpMode_ == MessagePumpMode::RealTime)
 			++Window::sRealTimeWindowCount_;
 		if (pumpMode_ == MessagePumpMode::EventDriven)
 			++Window::sEventDrivenWindowCount_;
+	}
+
+	LRESULT Window::OnCreate()
+	{
+		std::cout << "Calling OnCreate()\n";
+
+		// set window title
+		this->SetWindowTitle(this->GetWindowTitle());
+
+		// create memory bitmap
+		this->CreateMemoryBitmap();
+
+		// register window to receive raw input from mouse and keyboard
+		this->RegisterRawInput(
+			{
+				{ HidUsagePage::GenericDesktopControls, HidUsageId::Mouse },
+				{ HidUsagePage::GenericDesktopControls, HidUsageId::Keyboard }
+			}//, RIDEV_INPUTSINK
+		);
+
+		// center window position relative to desktop resolution
+		LONG windowWidth;
+		LONG windowHeight;
+		this->GetWindowSize(windowWidth, windowHeight);
+
+		int desktopWidth = GetSystemMetrics(SM_CXSCREEN);
+		int desktopHeight = GetSystemMetrics(SM_CYSCREEN);
+		int centerWidth = (desktopWidth - windowWidth) / 2;
+		int centerHeight = (desktopHeight - windowHeight) / 2;
+		UINT uFlags = SWP_SHOWWINDOW;
+		this->RepositionWindow(centerWidth, centerHeight, windowWidth, windowHeight, uFlags);
+
+		// show and update window
+		this->ShowAndUpdateWindow();
+
+		// increment window count
+		this->IncrementWindowCount();
+
+		return 0;
 	}
 #pragma endregion WINDOW CREATION
 
@@ -301,7 +306,7 @@ namespace winxframe
 		THROW_IF_ERROR_CTX(!hMemoryDC_, L"Handle to the device context for memory bitmap is invalid!");
 		THROW_IF_ERROR_CTX(!hMemoryBitmap_, L"Memory Bitmap handle is invalid!");
 
-		RECT rect{ 0, 0, windowWidth_, windowHeight_ };
+		RECT rect{ 0, 0, screenWidth_, screenHeight_ };
 		HBRUSH brush = CreateSolidBrush(color);
 		FillRect(hMemoryDC_, &rect, brush);
 		DeleteObject(brush);
@@ -315,7 +320,7 @@ namespace winxframe
 	void Window::Present() const
 	{
 		HDC hdc = GetDC(hWindow_);
-		BitBlt(hdc, 0, 0, windowWidth_, windowHeight_, hMemoryDC_, 0, 0, SRCCOPY);
+		BitBlt(hdc, 0, 0, screenWidth_, screenHeight_, hMemoryDC_, 0, 0, SRCCOPY);
 		ReleaseDC(hWindow_, hdc);
 	}
 #pragma endregion WINDOW MODIFICATIONS
@@ -325,6 +330,9 @@ namespace winxframe
 	{
 		switch (uMsg)
 		{
+		case WM_CREATE:
+			std::wcout << L"CASE: WM_CREATE" << L'\n';
+			return this->OnCreate();
 		case WM_KEYUP:
 		case WM_KEYDOWN:
 		{
@@ -341,7 +349,7 @@ namespace winxframe
 		{
 			std::wcout << L"CASE: WM_SIZE" << L'\n';
 			std::wcout << LOWORD(lParam) << L'x' << HIWORD(lParam) << L'\n';
-			this->SetWindowSize(LOWORD(lParam), HIWORD(lParam));
+			this->SetScreenSize(LOWORD(lParam), HIWORD(lParam));
 			try
 			{
 				this->CreateMemoryBitmap();
@@ -385,10 +393,7 @@ namespace winxframe
 			return 0;
 		case WM_DESTROY:
 			std::wcout << L"CASE: WM_DESTROY\n";
-			this->CleanupWindowResources();
-			if (Window::sEventDrivenWindowCount_ == 0 && Window::sRealTimeWindowCount_ == 0)
-				PostQuitMessage(0);
-			return 0;
+			return this->OnDestroy();
 		case WM_NCDESTROY:
 			std::wcout << L"CASE: WM_NCDESTROY\n";
 			SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
@@ -493,129 +498,15 @@ namespace winxframe
 	}
 #pragma endregion WINDOW DIALOGUE HANDLING
 
-#pragma region SYSTEM INFORMATION
-	void Window::SysInfo()
+#pragma region WINDOW QUERY
+	void Window::GetWindowSize(LONG& outWidth, LONG& outHeight, DWORD dwStyle, BOOL hasMenu, DWORD dwExStyle) const noexcept
 	{
-		WCHAR buffer1[UNLEN + 1]{};
-		DWORD size1 = UNLEN + 1;
-		GetUserNameW(buffer1, &size1);
-		std::wcout << L"\nUsername: " << buffer1 << L'\n';
-
-		WCHAR buffer2[MAX_COMPUTERNAME_LENGTH + 1]{};
-		DWORD size2 = MAX_COMPUTERNAME_LENGTH + 1;
-		GetComputerNameW(buffer2, &size2);
-		std::wcout << L"Computer Name: " << buffer2 << L'\n';
-
-		/*
-		typedef struct _SYSTEM_INFO {
-		  union {
-			DWORD dwOemId;
-			struct {
-			  WORD wProcessorArchitecture;
-			  WORD wReserved;
-			} DUMMYSTRUCTNAME;
-		  } DUMMYUNIONNAME;
-		  DWORD     dwPageSize;
-		  LPVOID    lpMinimumApplicationAddress;
-		  LPVOID    lpMaximumApplicationAddress;
-		  DWORD_PTR dwActiveProcessorMask;
-		  DWORD     dwNumberOfProcessors;
-		  DWORD     dwProcessorType;
-		  DWORD     dwAllocationGranularity;
-		  WORD      wProcessorLevel;
-		  WORD      wProcessorRevision;
-		} SYSTEM_INFO, *LPSYSTEM_INFO;
-
-		Use the wProcessorArchitecture, wProcessorLevel, and wProcessorRevision members to determine the type of processor.
-		*/
-		GetNativeSystemInfo(&systemInfo_);
-
-		std::wcout << L"Processor Architecture: ";
-		switch (systemInfo_.wProcessorArchitecture)
-		{
-		case PROCESSOR_ARCHITECTURE_INTEL:
-			std::wcout << L"x86\n";
-			break;
-		case PROCESSOR_ARCHITECTURE_AMD64:
-			std::wcout << L"x64 (AMD or Intel)\n";
-			break;
-		case PROCESSOR_ARCHITECTURE_ARM:
-			std::wcout << L"ARM\n";
-			break;
-		case PROCESSOR_ARCHITECTURE_ARM64:
-			std::wcout << L"ARM64\n";
-			break;
-		case PROCESSOR_ARCHITECTURE_IA64:
-			std::wcout << L"Intel Itanium-based\n";
-			break;
-		default:
-			std::wcout << L"Unknown architecture\n";
-			break;
-		}
-		std::wcout << L"Processor Level: " << systemInfo_.wProcessorLevel << L'\n';
-		std::wcout << L"Processor Revision: " << systemInfo_.wProcessorRevision << L'\n';
-		std::wcout << L"Logical Processors (threads): " << systemInfo_.dwNumberOfProcessors << L'\n';
-
-		WORD revision = systemInfo_.wProcessorRevision;
-		BYTE model = HIBYTE(revision);
-		BYTE stepping = LOBYTE(revision);
-
-		std::wcout << L"CPU Model: " << model << L'\n';
-		std::wcout << L"Stepping: " << stepping << L'\n';
-
-		std::wcout << std::endl;
+		RECT rect = { 0, 0, screenWidth_, screenHeight_ };
+		AdjustWindowRectEx(&rect, dwStyle, hasMenu, dwExStyle);
+		outWidth = rect.right - rect.left;
+		outHeight = rect.bottom - rect.top;
 	}
-
-	void Window::ProcessorInfo()
-	{
-		PSYSTEM_LOGICAL_PROCESSOR_INFORMATION buffer = nullptr;
-		DWORD size = 0;
-		DWORD error = GetLastError();
-
-		THROW_IF_ERROR_CTX(GetLogicalProcessorInformation(nullptr, &size) && error != ERROR_INSUFFICIENT_BUFFER, 
-			L"Failed to get required buffer size for logical processor info!");
-
-		/*
-		typedef struct _SYSTEM_LOGICAL_PROCESSOR_INFORMATION
-		{
-			ULONG_PTR ProcessorMask;
-			LOGICAL_PROCESSOR_RELATIONSHIP Relationship;
-
-			union
-			{
-				struct
-				{
-					BYTE Flags;
-				} ProcessorCore;
-
-				struct
-				{
-					DWORD NodeNumber;
-				} NumaNode;
-
-				CACHE_DESCRIPTOR Cache;
-				ULONGLONG Reserved[2];
-			} DUMMYUNIONNAME;
-		} SYSTEM_LOGICAL_PROCESSOR_INFORMATION, *PSYSTEM_LOGICAL_PROCESSOR_INFORMATION;
-		*/
-
-		buffer = (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION)malloc(size);
-		THROW_IF_ERROR_CTX(!buffer, L"Failed to allocate memory for logical processor info!");
-
-		if (!GetLogicalProcessorInformation(buffer, &size))
-		{
-			free(buffer);
-			THROW_ERROR_CTX(L"Failed to get logical processor information!");
-		}
-
-		DWORD count = size / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-		for (DWORD i = 0; i < count; ++i)
-			printf("Processor %u: Relationship = %d\n", i, buffer[i].Relationship);
-
-		free(buffer);
-		std::wcout << L'\n';
-	}
-#pragma endregion SYSTEM INFORMATION
+#pragma endregion WINDOW QUERY
 
 #pragma region WINDOW CLEANUP
 	void Window::DestroyMemoryBitmap()
@@ -679,7 +570,6 @@ namespace winxframe
 
 		this->DestroyMemoryBitmap();
 		this->CleanupRawDevices();
-		this->DecrementWindowCount();
 
 		isWindowCleaned_ = true;
 	}
@@ -700,12 +590,25 @@ namespace winxframe
 		isCleaned_ = true;
 	}
 
-	void Window::DecrementWindowCount() const
+	void Window::DecrementWindowCount() const noexcept
 	{
 		if (pumpMode_ == MessagePumpMode::RealTime)
 			--Window::sRealTimeWindowCount_;
 		if (pumpMode_ == MessagePumpMode::EventDriven)
 			--Window::sEventDrivenWindowCount_;
+	}
+
+	LRESULT Window::OnDestroy()
+	{
+		std::cout << "Calling OnDestroy()\n";
+
+		this->CleanupWindowResources();
+		this->DecrementWindowCount();
+		if (Window::sEventDrivenWindowCount_ == 0 && Window::sRealTimeWindowCount_ == 0)
+		{
+			PostQuitMessage(0);
+		}
+		return 0;
 	}
 
 	void Window::UnregisterWindowClass() // static
