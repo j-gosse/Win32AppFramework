@@ -394,3 +394,5 @@ FodyWeavers.xsd
 /Win32ApplicationFramework/lib/include/win32/Window/MessageLoopMode.hpp
 /Win32ApplicationFramework/window_manager.hpp
 /Win32ApplicationFramework/window_manager.cpp
+/Win32ApplicationFramework/IWindow.hpp
+/Win32ApplicationFramework/IWindow.cpp
