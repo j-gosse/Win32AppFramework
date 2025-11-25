@@ -30,6 +30,7 @@ namespace winxframe
         MessagePumpMode pumpMode_;
         static unsigned int sRealTimeWindowCount_;
         static unsigned int sEventDrivenWindowCount_;
+        bool isCreated_ = false;
         bool isCleaned_ = false;
 
         /**
@@ -53,12 +54,6 @@ namespace winxframe
         * @brief	Clean and release any other internal resources not associated with the window handle.
         */
         void Cleanup();
-
-        /**
-        * @brief	Return the boolean value checking if general cleanup has been performed.
-        * @return	bool isCleaned_
-        */
-        bool IsCleaned() const noexcept { return isCleaned_; }
 
     protected:
         /**

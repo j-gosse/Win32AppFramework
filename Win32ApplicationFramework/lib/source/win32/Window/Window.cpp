@@ -94,18 +94,9 @@ namespace winxframe
 		LONG windowHeight;
 		this->GetWindowSize(windowWidth, windowHeight);
 
-		Create(
-			wcex,
-			this->GetWindowTitle(),
-			leftX,
-			topY,
-			windowWidth,
-			windowHeight,
-			nullptr,
-			nullptr,
-			WS_OVERLAPPEDWINDOW,
-			0
-		);
+		// create window
+		if (!Create(wcex, this->GetWindowTitle(), leftX, topY, windowWidth, windowHeight, nullptr, nullptr, WS_OVERLAPPEDWINDOW, 0))
+			THROW_ERROR_CTX(L"Failed to create window!");
 	}
 
 	void Window::SetWindowTitle(const std::wstring& title) noexcept

@@ -28,6 +28,8 @@ SetWindowClassName(), GetWindowClass(), GetRealTimeWindowCount(), GetEventDriven
 class handles most of this logic and WNDCLASS creation now occurs outside of any window classes.  
 - Removed static member variables sWindowClassName_, sWindowClass_, and sIsClassRegistered_ from the Window class. WNDCLASS creation occurs elsewhere while class registration occurs in IWindow.  
 - IWindow and Window classes now accept a parameter referencing a WNDCLASSEX structure.  
+- Modified IWindow class static WndProc method. Removed the try/catch blocks and stopped throwing here, instead returning FALSE if "pInstance" is null. The exception should be thrown on the Create() window method in order to appropriately catch 
+errors caused by invalid or null "lpCreateParams" when assigned to "pInstance" in the WndProc method.  
 
 [CLICK HERE](CHANGELOG.md) to view the full change log.
 

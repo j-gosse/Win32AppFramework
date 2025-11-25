@@ -78,28 +78,16 @@ namespace winxframe
         {
             LPCREATESTRUCTW createStruct = reinterpret_cast<LPCREATESTRUCTW>(lParam);
             pInstance = static_cast<IWindow*>(createStruct->lpCreateParams);
-            try
+            if (!pInstance)
+                return FALSE;
+            else
             {
-                if (!pInstance)
-                {
-                    THROW_ERROR_CTX(L"WARNING! lpCreateParams is null in WM_NCCREATE!");
-                }
-                else
-                {
-                    SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pInstance));
-                    pInstance->hWindow_ = hWnd;
-                }
-            }
-            catch (const Error& e)
-            {
-                e.MsgBox();
-                std::wcerr << L"Caught Error (Error class):\n" << e.wwhat() << L'\n';
+                SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pInstance));
+                pInstance->hWindow_ = hWnd;
             }
         }
         else
-        {
             pInstance = reinterpret_cast<IWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-        }
 
         if (pInstance)
             return pInstance->HandleMessage(uMsg, wParam, lParam);
@@ -145,7 +133,7 @@ namespace winxframe
             this
         );
 
-        return (hWindow_ != nullptr);
+        return this->IsWindow();
     }
 
     LRESULT IWindow::HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam)

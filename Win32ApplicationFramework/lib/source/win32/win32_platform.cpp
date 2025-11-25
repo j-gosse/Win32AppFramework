@@ -19,7 +19,6 @@ Win32 Platform is the main entry point for the application.
 
 using namespace winxframe;
 
-// derived window class test
 class TestWindow : public Window
 {
 public:
