@@ -29,9 +29,7 @@ namespace winxframe
         double fps = 0.0;
         static bool firstFrame = true; // skip FPS calculation on first frame, persists across calls
 
-        bool hasRealTimeWindow = Window::GetRealTimeWindowCount() > 0;
-
-        if (hasRealTimeWindow)
+        if (IWindow::HasRealTimeWindow())
         {
             std::chrono::high_resolution_clock::time_point frameStart = std::chrono::high_resolution_clock::now();
 

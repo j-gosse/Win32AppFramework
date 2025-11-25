@@ -1,13 +1,13 @@
 /*!
 lib\source\win32\win32_platform.cpp
 Created: October 5, 2025
-Updated: November 22, 2025
+Updated: November 25, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Win32 Platform source file.
 
 \note
-Win32 Platform is the main (wWinMain) entry point for the application.
+Win32 Platform is the main entry point for the application.
 */
 
 #include <win32/Console/Console.hpp>
@@ -24,30 +24,38 @@ class TestWindow : public Window
 {
 public:
     TestWindow(
-        const std::wstring& title = L"",
-        LONG windowWidth = DEFAULT_SCREEN_WIDTH,
-        LONG windowHeight = DEFAULT_SCREEN_HEIGHT,
-        MessagePumpMode mode = MessagePumpMode::RealTime,
+        WNDCLASSEX& wcex, 
+        const std::wstring& title = L"", 
+        LONG windowWidth = DEFAULT_SCREEN_WIDTH, 
+        LONG windowHeight = DEFAULT_SCREEN_HEIGHT, 
+        MessagePumpMode mode = MessagePumpMode::RealTime, 
         int nCmdShow = SW_SHOWDEFAULT
     )
-        : Window(title, windowWidth, windowHeight, mode, nCmdShow) {}
+        : Window(wcex, title, windowWidth, windowHeight, mode, nCmdShow)
+    {
+        std::wcout << L"CONSTRUCTOR: TestWindow(WNDCLASSEX& wcex)\n";
+    }
 
     TestWindow(
-        HINSTANCE hInstance,
-        const std::wstring& title = L"",
-        LONG windowWidth = DEFAULT_SCREEN_WIDTH,
-        LONG windowHeight = DEFAULT_SCREEN_HEIGHT,
-        MessagePumpMode mode = MessagePumpMode::RealTime,
+        HINSTANCE hInstance, 
+        WNDCLASSEX& wcex, 
+        const std::wstring& title = L"", 
+        LONG windowWidth = DEFAULT_SCREEN_WIDTH, 
+        LONG windowHeight = DEFAULT_SCREEN_HEIGHT, 
+        MessagePumpMode mode = MessagePumpMode::RealTime, 
         int nCmdShow = SW_SHOWDEFAULT
     )
-        : Window(hInstance, title, windowWidth, windowHeight, mode, nCmdShow) {}
-
-    ~TestWindow() override
+        : Window(hInstance, wcex, title, windowWidth, windowHeight, mode, nCmdShow)
     {
-        std::wcout << L"DESTRUCTOR: ~MyWindow()\n";
+        std::wcout << L"CONSTRUCTOR: TestWindow(WNDCLASSEX& wcex, HINSTANCE hInstance)" << L'\n';
+    }
+
+    ~TestWindow() noexcept override
+    {
+        std::wcout << L"DESTRUCTOR: ~TestWindow()\n";
     }
     
-    LRESULT OnCreate() override { return Window::OnCreate(); }
+    LRESULT OnCreate() override { return Window::OnCreate(); } // parent class OnCreate() should run BEFORE derived class logic
 
     void Update(std::chrono::nanoseconds deltaTime) override
     {
@@ -66,8 +74,36 @@ public:
         Present();
     }
 
-    LRESULT OnDestroy() override { return Window::OnDestroy(); }
+    LRESULT OnDestroy() override { return Window::OnDestroy(); } // parent class OnDestroy() should run AFTER derived class logic
 };
+
+static WNDCLASSEX CreateWindowClass(HINSTANCE hInstance, const std::wstring& className, int extraClassBytes, int extraWindowBytes)
+{
+    WNDCLASSEX wcex = {};
+
+    // window class properties
+    wcex.cbSize = sizeof(WNDCLASSEX);
+    wcex.lpfnWndProc = nullptr;
+    wcex.hInstance = hInstance;
+    wcex.lpszClassName = className.c_str();
+    wcex.lpszMenuName = MAKEINTRESOURCEW(IDR_MAIN_MENU);
+    wcex.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS | CS_OWNDC;
+    wcex.cbClsExtra = extraClassBytes;
+    wcex.cbWndExtra = extraWindowBytes;
+    wcex.hCursor = LoadCursorW(NULL, IDC_ARROW);
+    wcex.hIcon = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_PRIMARY));
+    wcex.hIconSm = LoadIconW(hInstance, MAKEINTRESOURCE(IDI_SMALL));
+    wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+    //wcex.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    //wcex.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+
+    return wcex;
+}
+
+static void UnregisterWindowClass(const WNDCLASSEX& wcex)
+{
+    THROW_IF_ERROR_CTX(!UnregisterClassW(wcex.lpszClassName, wcex.hInstance), L"Failed to unregister the window class!");
+}
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
@@ -91,23 +127,18 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         // init console
         console = std::make_unique<winxframe::Console>(hInstance, L"CONSOLE", consoleSize.X, consoleSize.Y);
 
-        // init window(s)
-        LONG windowWidth = 800;
-        LONG windowHeight = 600;
-        windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW1", windowWidth, windowHeight, MessagePumpMode::RealTime, nCmdShow));
-        //windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW2", 600, 400, MessagePumpMode::RealTime, nCmdShow));
-        //windows.push_back(std::make_unique<TestWindow>(hInstance, L"WINDOW3", 400, 200, MessagePumpMode::EventDriven, nCmdShow));
-
         // run unit tests
         winxframe::TestRegistry::RunAll();
 
-        // console test
-        console->WriteText(L"This is a really really really really really really really really long line that if necessary will be written across multiple lines based on the width of the console buffer. Does not wrap words.");
-        console->WriteText(L"gggg", console_color::RED);
-        console->WriteText(L"1111", console_color::BRIGHT_RED);
-        console->WriteText(L"gggg", console_color::BRIGHT_WHITE);
-        std::cout << console_color::WhiteOnRed << "cout stream color test 1\n" << console_color::Default;
-        std::cout << console_color::WhiteOnGreen << "cout stream color test 2\n" << console_color::Default;
+        // create WNDCLASS object
+        WNDCLASSEX mainWindowClass = CreateWindowClass(hInstance, L"WindowBaseClass", 0, 0);
+
+        // init window(s)
+        LONG windowWidth = 800;
+        LONG windowHeight = 600;
+        windows.push_back(std::make_unique<TestWindow>(hInstance, mainWindowClass, L"WINDOW1", windowWidth, windowHeight, MessagePumpMode::RealTime, nCmdShow));
+        //windows.push_back(std::make_unique<TestWindow>(hInstance, mainWindowClass, L"WINDOW2", 600, 400, MessagePumpMode::RealTime, nCmdShow));
+        //windows.push_back(std::make_unique<TestWindow>(hInstance, mainWindowClass, L"WINDOW3", 400, 200, MessagePumpMode::EventDriven, nCmdShow));
 
         /* Main Loop */
         std::wcout << L"Entering the main loop...\n";
@@ -126,8 +157,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
         OutputDebugStringW(L"Exiting the main loop...\n");
         /* End of Main Loop */
 
-        // unregister the static window class
-        Window::UnregisterWindowClass();
+        // unregister window class
+        UnregisterWindowClass(mainWindowClass);
     }
     catch (const winxframe::Error& e)
     {

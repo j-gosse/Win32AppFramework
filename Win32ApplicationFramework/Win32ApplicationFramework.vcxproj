@@ -154,6 +154,7 @@
     <ClInclude Include="lib\include\win32\targetver.h" />
     <ClInclude Include="lib\include\win32\utils\win32_utils.hpp" />
     <ClInclude Include="lib\include\win32\Window\HidUsage.hpp" />
+    <ClInclude Include="lib\include\win32\Window\IWindow.hpp" />
     <ClInclude Include="lib\include\win32\Window\MessagePumpMode.hpp" />
     <ClInclude Include="lib\include\win32\Window\Window.hpp" />
     <ClInclude Include="lib\include\win32\Window\window_manager.hpp" />
@@ -165,6 +166,7 @@
     <ClCompile Include="lib\source\win32\Console\Console.cpp" />
     <ClCompile Include="lib\source\win32\Error\Error.cpp" />
     <ClCompile Include="lib\source\win32\win32_platform.cpp" />
+    <ClCompile Include="lib\source\win32\Window\IWindow.cpp" />
     <ClCompile Include="lib\source\win32\Window\Window.cpp" />
     <ClCompile Include="lib\source\win32\Window\window_manager.cpp" />
   </ItemGroup>
