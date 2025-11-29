@@ -396,3 +396,10 @@ FodyWeavers.xsd
 /Win32ApplicationFramework/window_manager.cpp
 /Win32ApplicationFramework/IWindow.hpp
 /Win32ApplicationFramework/IWindow.cpp
+/Win32ApplicationFramework/WindowClassRegistry.hpp
+/Win32ApplicationFramework/WindowClassRegistry.cpp
+/Win32ApplicationFramework/WindowCounter.hpp
+/NOTICE.txt
+/Win32ApplicationFramework/NOTICE.txt
+/Win32ApplicationFramework/NOTICE.txt
+/Win32ApplicationFramework/NOTICE.txt
