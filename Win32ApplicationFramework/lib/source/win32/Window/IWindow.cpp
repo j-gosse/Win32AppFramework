@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\IWindow.cpp
 Created: November 25, 2025
-Updated: November 25, 2025
+Updated: November 29, 2025
 Copyright (c) 2025, Jacob Gosse
 
 IWindow source file.
@@ -16,7 +16,7 @@ namespace winxframe
 
     IWindow::IWindow(MessagePumpMode mode)
         try :
-        hInstance_(GetModuleHandleW(nullptr)), 
+        hInstance_(GetModuleHandle(nullptr)), 
         pumpMode_(mode)
     {
         std::wcout << L"CONSTRUCTOR: IWindow(MessagePumpMode mode)\n";
@@ -52,10 +52,10 @@ namespace winxframe
 
     /* DESTRUCTOR */
 
-    IWindow::~IWindow()
+    IWindow::~IWindow() noexcept
     {
         std::wcout << L"DESTRUCTOR: ~IWindow()\n";
-        OutputDebugStringW(L"DESTRUCTOR: ~IWindow()\n");
+        OutputDebugString(L"DESTRUCTOR: ~IWindow()\n");
         if (hWindow_)
         {
             DestroyWindow(hWindow_);
@@ -82,49 +82,37 @@ namespace winxframe
                 return FALSE;
             else
             {
-                SetWindowLongPtrW(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pInstance));
+                SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pInstance));
                 pInstance->hWindow_ = hWnd;
             }
         }
         else
-            pInstance = reinterpret_cast<IWindow*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
+            pInstance = reinterpret_cast<IWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
 
         if (pInstance)
             return pInstance->HandleMessage(uMsg, wParam, lParam);
-        return DefWindowProcW(hWnd, uMsg, wParam, lParam);
+        return DefWindowProc(hWnd, uMsg, wParam, lParam);
     }
 
-    ATOM IWindow::RegisterWindowClass(WNDCLASSEX& wcex) const
+    bool IWindow::Create(WindowClassRegistry& windowClassRegistry, std::wstring& windowClassName, const std::wstring& windowTitle, int leftX, int topY, LONG windowWidth, LONG windowHeight, HWND parent, HMENU menu, DWORD dwStyle, DWORD dwExStyle)
     {
-        // return 1 if class already registered
-        WNDCLASSEX temp{};
-        if (GetClassInfoExW(hInstance_, wcex.lpszClassName, &temp) != 0)
-            return 1;
+        hAccelTable_ = LoadAccelerators(hInstance_, MAKEINTRESOURCE(IDR_ACCELERATOR));
 
-        if (!wcex.lpfnWndProc)
-            wcex.lpfnWndProc = IWindow::WndProc;
-
-        ATOM result = RegisterClassExW(&wcex);
-        THROW_IF_ERROR_CTX(!result && GetLastError() != ERROR_CLASS_ALREADY_EXISTS, L"Failed to register the window class!");
-        return result;
-    }
-
-    bool IWindow::Create(WNDCLASSEX& wcex, const std::wstring& title, int leftX, int topY, LONG windowWidth, LONG windowHeight, HWND parent, HMENU menu, DWORD dwStyle, DWORD dwExStyle)
-    {
-        hAccelTable_ = LoadAcceleratorsW(hInstance_, MAKEINTRESOURCE(IDR_ACCELERATOR));
-
-        if (!wcex.lpszClassName || wcex.lpszClassName[0] == L'\0')
+        // set default class name if class name string empty
+        if (windowClassName.empty())
         {
-            WCHAR titleBuffer[MAX_LOADSTRING]{};
-            LoadStringW(hInstance_, IDS_WINDOW_CLASS, titleBuffer, MAX_LOADSTRING);
-            wcex.lpszClassName = titleBuffer;
+            WCHAR classNameBuffer[MAX_LOADSTRING]{};
+            LoadString(hInstance_, IDS_WINDOW_CLASS, classNameBuffer, MAX_LOADSTRING);
+            windowClassName = classNameBuffer;
         }
-        this->RegisterWindowClass(wcex);
 
-        hWindow_ = CreateWindowExW(
+        WNDCLASSEX wcex = windowClassRegistry.CreateWindowClass(hInstance_, IWindow::WndProc, windowClassName);
+        windowClassRegistry.RegisterWindowClass(wcex);
+
+        hWindow_ = CreateWindowEx(
             dwExStyle,
-            wcex.lpszClassName,
-            title.c_str(),
+            windowClassName.c_str(),
+            windowTitle.c_str(),
             dwStyle,
             leftX, topY, windowWidth, windowHeight,
             parent,
@@ -142,28 +130,12 @@ namespace winxframe
         {
         case WM_NCDESTROY:
             std::wcout << L"CASE: WM_NCDESTROY\n";
-            SetWindowLongPtrW(hWindow_, GWLP_USERDATA, 0);
+            SetWindowLongPtr(hWindow_, GWLP_USERDATA, 0);
             hWindow_ = nullptr;
             return 0;
         default:
-            return DefWindowProcW(hWindow_, uMsg, wParam, lParam);
+            return DefWindowProc(hWindow_, uMsg, wParam, lParam);
         }
-    }
-
-    void IWindow::IncrementWindowCount() const noexcept
-    {
-        if (pumpMode_ == MessagePumpMode::RealTime)
-            ++IWindow::sRealTimeWindowCount_;
-        if (pumpMode_ == MessagePumpMode::EventDriven)
-            ++IWindow::sEventDrivenWindowCount_;
-    }
-
-    void IWindow::DecrementWindowCount() const noexcept
-    {
-        if (pumpMode_ == MessagePumpMode::RealTime)
-            --IWindow::sRealTimeWindowCount_;
-        if (pumpMode_ == MessagePumpMode::EventDriven)
-            --IWindow::sEventDrivenWindowCount_;
     }
 
     void IWindow::Cleanup()

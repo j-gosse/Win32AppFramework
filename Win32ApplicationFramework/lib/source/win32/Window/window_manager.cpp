@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\window_manager.cpp
 Created: November 17, 2025
-Updated: November 18, 2025
+Updated: November 29, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window Manager source file.
@@ -29,7 +29,7 @@ namespace winxframe
         double fps = 0.0;
         static bool firstFrame = true; // skip FPS calculation on first frame, persists across calls
 
-        if (IWindow::HasRealTimeWindow())
+        if (WindowCounter::HasRealTimeWindow())
         {
             std::chrono::high_resolution_clock::time_point frameStart = std::chrono::high_resolution_clock::now();
 
@@ -49,7 +49,7 @@ namespace winxframe
                 (*window)->PeekMessages(); // non-blocking
 
                 // remove destroyed windows
-                if (!(*window)->GetWindow())
+                if (!(*window)->IsWindow())
                     window = windows.erase(window);
                 else
                 {
@@ -69,7 +69,7 @@ namespace winxframe
             //win32_utils::HybridVSyncFrameLimiter(targetFrameTime, frameStart);
             win32_utils::HighPrecisionFrameLimiter(targetFrameTime);
         }
-        else // Event Driven windows only
+        else if (WindowCounter::HasEventDrivenWindow())
         {
             // pump messages for all event-driven windows with call to the first
             if (windows.front()->GetMessages()) // blocking
@@ -80,7 +80,7 @@ namespace winxframe
             // remove destroyed windows
             for (auto window = windows.begin(); window != windows.end();)
             {
-                if (!(*window)->GetWindow())
+                if (!(*window)->IsWindow())
                     window = windows.erase(window);
                 else
                     ++window;

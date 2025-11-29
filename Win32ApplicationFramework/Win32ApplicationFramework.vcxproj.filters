@@ -72,11 +72,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="NOTICE.txt">
-      <Filter>Source Files</Filter>
-    </Text>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="lib\include\win32\Console\Console.hpp">
       <Filter>Header Files\lib\win32\Console</Filter>
     </ClInclude>
@@ -143,6 +138,12 @@
     <ClInclude Include="lib\include\win32\Window\IWindow.hpp">
       <Filter>Header Files\lib\win32\Window</Filter>
     </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\WindowClassRegistry.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
+    <ClInclude Include="lib\include\win32\Window\WindowCounter.hpp">
+      <Filter>Header Files\lib\win32\Window</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="lib\source\win32\win32_platform.cpp">
@@ -172,6 +173,9 @@
     <ClCompile Include="lib\source\win32\Window\IWindow.cpp">
       <Filter>Source Files\lib\win32\Window</Filter>
     </ClCompile>
+    <ClCompile Include="lib\source\win32\Window\WindowClassRegistry.cpp">
+      <Filter>Source Files\lib\win32\Window</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="lib\source\win32\res\resource_script.rc">
@@ -193,5 +197,10 @@
     <None Include="..\CHANGELOG.md">
       <Filter>Source Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\NOTICE.txt">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>

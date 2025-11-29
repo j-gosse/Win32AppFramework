@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Window\Window.hpp
 Created: October 5, 2025
-Updated: November 25, 2025
+Updated: November 29, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window header file.
@@ -13,6 +13,7 @@ Window header file.
 #define WINDOW_HPP_
 
 #include "IWindow.hpp"
+#include "WindowCounter.hpp"
 #include "HidUsage.hpp"
 
 namespace winxframe
@@ -20,7 +21,7 @@ namespace winxframe
 	/**
 	* @brief	Create a GUI Window for an application.
 	*/
-	class Window : public IWindow
+	class Window : public IWindow, public WindowCounter
 	{
 	private:
 		int showCmd_ = SW_SHOWDEFAULT;
@@ -41,12 +42,10 @@ namespace winxframe
 		bool isWindowCleaned_ = false;
 
 		/**
-		* @brief	Obtain system information, register the window class and initialize window startup properties, build the window, 
-		*			create the memory bitmap buffer, register raw input devices, center the window position, show and update the window, 
-		*			and increment window counter.
-		* @param    WNDCLASSEX& wcex : Reference to a WNDCLASSEX structure.
+		* @brief	Obtain system information, initialize window startup properties, and create the window.
+		* @param    WindowClassRegistry& windowClassRegistry : Reference to the window class registry.
 		*/
-		void InitWindow(WNDCLASSEX& wcex);
+		void InitWindow(WindowClassRegistry& windowClassRegistry);
 
 		/**
 		* @brief	Create the memory bitmap buffer. Checks for existing memory bitmap and destroys, sets the memory bitmap device context handle, 
@@ -95,23 +94,23 @@ namespace winxframe
 
 	protected:
 		/**
-		* @brief	Virtual method called in WM_CREATE. Encapsulate any necessary window creation logic necessary for the base window class. Override in a derived class.
+		* @brief	Virtual method called in WM_CREATE. Encapsulate any window creation logic necessary for the base window class. Override in a derived class.
 		* @return	0 on success, nonzero or -1 may indicate error or failure.
 		*/
-		virtual LRESULT OnCreate();
+		virtual LRESULT OnCreate() override;
 
 		/**
-		* @brief	Virtual method called in WM_DESTROY. Encapsulate any necessary window destruction logic necessary for the base window class. Override in a derived class.
+		* @brief	Virtual method called in WM_DESTROY. Encapsulate any window destruction logic necessary for the base window class. Override in a derived class.
 		* @return	0 on success, nonzero or -1 may indicate error or failure.
 		*/
-		virtual LRESULT OnDestroy();
+		virtual LRESULT OnDestroy() override;
 
 		/**
-		* @brief	Handle a message sent to the window on a switch-case basis.
+		* @brief	Virtual message handler. Handle a message sent to the window on a switch-case basis. Override in derived classes to customize message handling.
 		* @param	UINT uMsg		: The message identifier. This parameter specifies which message is being sent to the window.
 		* @param	WPARAM wParam	: Provides additional message-specific information. Indicates whether the window was minimized, maximized, or resized.
 		* @param	LPARAM lParam	: Provides additional message-specific information. Contains the new width and height of the window.
-		* @return	DefWindowProcW(hWindow_, uMsg, wParam, lParam) when default switch case or return 0 when switch case successful
+		* @return	LRESULT DefWindowProc(hWindow_, uMsg, wParam, lParam) on default case or return 0 after a message is successfully handled.
 		*/
 		virtual LRESULT HandleMessage(UINT uMsg, WPARAM wParam, LPARAM lParam) override;
 
@@ -124,10 +123,11 @@ namespace winxframe
 
 		/**
 		* @brief	Reposition a window based on the leftX, topY and window width, window height.
-		* @param	int leftX		 : The left position of the window.
-		* @param	int topY		 : The top position of the window.
-		* @param	int windowWidth	 : Width of the window.
-		* @param	int windowHeight : Height of the window.
+		* @param	int leftX			: The left position of the window.
+		* @param	int topY			: The top position of the window.
+		* @param	int windowWidth		: Width of the window.
+		* @param	int windowHeight	: Height of the window.
+		* @param	UINT uFlags			: Window sizing and positioning flags.
 		*/
 		void RepositionWindow(int leftX, int topY, int windowWidth, int windowHeight, UINT uFlags = 0) const noexcept;
 
@@ -191,14 +191,15 @@ namespace winxframe
 	public:
 		/**
 		* @brief	Default Window Constructor.
-		* @param    WNDCLASSEX& wcex            : Reference to the WNDCLASSEX structure.
-		* @param	const std::wstring& title	: Title of the window.
-		* @param	LONG screenWidth			: Width of the window client area in pixels.
-		* @param	LONG screenHeight			: Height of the window client area in pixels.
-		* @param	MessagePumpMode mode		: Real-time or event-driven mode.
+		* @param    WindowClassRegistry& windowClassRegistry	: Reference to the window class registry.
+		* @param	const std::wstring& title					: Title of the window.
+		* @param	LONG screenWidth							: Width of the window client area in pixels.
+		* @param	LONG screenHeight							: Height of the window client area in pixels.
+		* @param	MessagePumpMode mode						: Real-time or event-driven mode.
+		* @param	int nCmdShow								: Show command passed from the main entry point.
 		*/
 		Window(
-			WNDCLASSEX& wcex, 
+			WindowClassRegistry& windowClassRegistry,
 			const std::wstring& windowTitle = L"", 
 			LONG screenWidth = DEFAULT_SCREEN_WIDTH, 
 			LONG screenHeight = DEFAULT_SCREEN_HEIGHT, 
@@ -208,16 +209,17 @@ namespace winxframe
 
 		/**
 		* @brief	HINSTANCE Window Constructor.
-		* @param	HINSTANCE hInstance			: A handle to the window instance module.
-		* @param    WNDCLASSEX& wcex            : Reference to the WNDCLASSEX structure.
-		* @param	const std::wstring& title	: Title of the window.
-		* @param	LONG screenWidth			: Width of the window client area in pixels.
-		* @param	LONG screenHeight			: Height of the window client area in pixels.
-		* @param	MessagePumpMode mode		: Real-time or event-driven mode.
+		* @param	HINSTANCE hInstance							: A handle to the window instance module.
+		* @param    WindowClassRegistry& windowClassRegistry	: Reference to the window class registry.
+		* @param	const std::wstring& title					: Title of the window.
+		* @param	LONG screenWidth							: Width of the window client area in pixels.
+		* @param	LONG screenHeight							: Height of the window client area in pixels.
+		* @param	MessagePumpMode mode						: Real-time or event-driven mode.
+		* @param	int nCmdShow								: Show command passed from the main entry point.
 		*/
 		Window(
 			HINSTANCE hInstance, 
-			WNDCLASSEX& wcex, 
+			WindowClassRegistry& windowClassRegistry,
 			const std::wstring& windowTitle = L"", 
 			LONG screenWidth = DEFAULT_SCREEN_WIDTH,
 			LONG screenHeight = DEFAULT_SCREEN_HEIGHT,

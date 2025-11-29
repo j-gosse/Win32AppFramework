@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Window\Window.cpp
 Created: October 5, 2025
-Updated: November 25, 2025
+Updated: November 29, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Window source file.
@@ -15,7 +15,7 @@ namespace winxframe
 {
 	/* CONSTRUCTORS */
 
-	Window::Window(WNDCLASSEX& wcex, const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
+	Window::Window(WindowClassRegistry& windowClassRegistry, const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
 		try :
 		IWindow(mode),
 		showCmd_(win32_utils::ResolveShowCmd(nCmdShow)),
@@ -23,8 +23,8 @@ namespace winxframe
 		screenWidth_(screenWidth),
 		screenHeight_(screenHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(WNDCLASSEX& wcex)\n";
-		this->InitWindow(wcex);
+		std::wcout << L"CONSTRUCTOR: Window(WindowClassRegistry& windowClassRegistry)\n";
+		this->InitWindow(windowClassRegistry);
 	}
 	catch (const Error&)
 	{
@@ -36,7 +36,7 @@ namespace winxframe
 		RETHROW_ERROR_CTX(L"Rethrowing Window constructor error!");
 	}
 
-	Window::Window(HINSTANCE hInstance, WNDCLASSEX& wcex, const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
+	Window::Window(HINSTANCE hInstance, WindowClassRegistry& windowClassRegistry, const std::wstring& windowTitle, LONG screenWidth, LONG screenHeight, MessagePumpMode mode, int nCmdShow)
 		try :
 		IWindow(hInstance, mode),
 		showCmd_(win32_utils::ResolveShowCmd(nCmdShow)),
@@ -44,8 +44,8 @@ namespace winxframe
 		screenWidth_(screenWidth),
 		screenHeight_(screenHeight)
 	{
-		std::wcout << L"CONSTRUCTOR: Window(WNDCLASSEX& wcex, HINSTANCE hInstance)" << L'\n';
-		this->InitWindow(wcex);
+		std::wcout << L"CONSTRUCTOR: Window(HINSTANCE hInstance, WindowClassRegistry& windowClassRegistry)" << L'\n';
+		this->InitWindow(windowClassRegistry);
 	}
 	catch (const Error&)
 	{
@@ -62,7 +62,7 @@ namespace winxframe
 	Window::~Window() noexcept
 	{
 		std::wcout << L"DESTRUCTOR: ~Window()" << L'\n';
-		OutputDebugStringW(L"DESTRUCTOR: ~Window()\n");
+		OutputDebugString(L"DESTRUCTOR: ~Window()\n");
 		if (this->IsWindow())
 		{
 			DestroyWindow(this->GetWindow());
@@ -81,7 +81,7 @@ namespace winxframe
 		UpdateWindow(this->GetWindow());
 	}
 
-	void Window::InitWindow(WNDCLASSEX& wcex)
+	void Window::InitWindow(WindowClassRegistry& windowClassRegistry)
 	{
 		// system information
 		//win32_utils::SysInfo();
@@ -95,7 +95,8 @@ namespace winxframe
 		this->GetWindowSize(windowWidth, windowHeight);
 
 		// create window
-		if (!Create(wcex, this->GetWindowTitle(), leftX, topY, windowWidth, windowHeight, nullptr, nullptr, WS_OVERLAPPEDWINDOW, 0))
+		std::wstring windowClassName = L"";
+		if (!Create(windowClassRegistry, windowClassName, this->GetWindowTitle(), leftX, topY, windowWidth, windowHeight, nullptr, nullptr, WS_OVERLAPPEDWINDOW, 0))
 			THROW_ERROR_CTX(L"Failed to create window!");
 	}
 
@@ -106,11 +107,11 @@ namespace winxframe
 		else
 		{
 			WCHAR titleBuffer[MAX_LOADSTRING]{};
-			LoadStringW(this->GetInstance(), IDS_WINDOW_TITLE, titleBuffer, MAX_LOADSTRING);
+			LoadString(this->GetInstance(), IDS_WINDOW_TITLE, titleBuffer, MAX_LOADSTRING);
 			windowTitle_ = titleBuffer;
 		}
 		if (this->IsWindow())
-			SetWindowTextW(this->GetWindow(), this->GetWindowTitle().c_str());
+			SetWindowText(this->GetWindow(), this->GetWindowTitle().c_str());
 	}
 
 	void Window::CreateMemoryBitmap()
@@ -154,8 +155,9 @@ namespace winxframe
 	{
 		std::cout << "Calling OnCreate()\n";
 
-		// set window title
-		this->SetWindowTitle(this->GetWindowTitle());
+		// set default title if title string blank
+		if (windowTitle_.empty())
+			this->SetWindowTitle();
 
 		// create memory bitmap
 		this->CreateMemoryBitmap();
@@ -184,7 +186,7 @@ namespace winxframe
 		this->ShowAndUpdateWindow();
 
 		// increment window count
-		this->IncrementWindowCount();
+		IncrementWindowCount(this->GetPumpMode());
 
 		return 0;
 	}
@@ -280,18 +282,18 @@ namespace winxframe
 			{
 			case IDM_ABOUT:
 				std::wcout << L"CASE: IDM_ABOUT" << L'\n';
-				DialogBoxParamW(this->GetInstance(), MAKEINTRESOURCE(IDD_ABOUTBOX), this->GetWindow(), Window::About, 0);
+				DialogBoxParam(this->GetInstance(), MAKEINTRESOURCE(IDD_ABOUTBOX), this->GetWindow(), Window::About, 0);
 				return 0;
 			case IDM_EXIT:
 				std::wcout << L"CASE: IDM_EXIT" << L'\n';
-				if (MessageBoxW(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+				if (MessageBox(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
 					DestroyWindow(this->GetWindow());
 				return 0;
 			}
 			return 0;
 		case WM_CLOSE:
 			std::wcout << L"CASE: WM_CLOSE" << L'\n';
-			if (MessageBoxW(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
+			if (MessageBox(this->GetWindow(), L"Do you wish to exit?", this->GetWindowTitle().c_str(), MB_OKCANCEL | MB_ICONQUESTION) == IDOK)
 				DestroyWindow(this->GetWindow());
 			return 0;
 		case WM_DESTROY:
@@ -300,7 +302,7 @@ namespace winxframe
 		case WM_NCDESTROY:
 			return IWindow::HandleMessage(uMsg, wParam, lParam);
 		default:
-			return DefWindowProcW(this->GetWindow(), uMsg, wParam, lParam);
+			return DefWindowProc(this->GetWindow(), uMsg, wParam, lParam);
 		}
 	}
 
@@ -308,12 +310,12 @@ namespace winxframe
 	{
 		MSG msg = {};
 		const HACCEL accelTable = this->GetAccelTable();
-		while (PeekMessageW(&msg, nullptr, wMsgFilterMin, wMsgFilterMax, PM_REMOVE))
+		while (PeekMessage(&msg, nullptr, wMsgFilterMin, wMsgFilterMax, PM_REMOVE))
 		{
-			if (!accelTable || !TranslateAcceleratorW(msg.hwnd, accelTable, &msg))
+			if (!accelTable || !TranslateAccelerator(msg.hwnd, accelTable, &msg))
 			{
 				TranslateMessage(&msg);
-				DispatchMessageW(&msg);
+				DispatchMessage(&msg);
 			}
 		}
 	}
@@ -324,12 +326,12 @@ namespace winxframe
 		const HACCEL accelTable = this->GetAccelTable();
 		int returnValue = 0;
 
-		while ((returnValue = GetMessageW(&msg, nullptr, wMsgFilterMin, wMsgFilterMax)) > 0)
+		while ((returnValue = GetMessage(&msg, nullptr, wMsgFilterMin, wMsgFilterMax)) > 0)
 		{
-			if (!accelTable || !TranslateAcceleratorW(msg.hwnd, accelTable, &msg))
+			if (!accelTable || !TranslateAccelerator(msg.hwnd, accelTable, &msg))
 			{
 				TranslateMessage(&msg);
-				DispatchMessageW(&msg);
+				DispatchMessage(&msg);
 			}
 		}
 
@@ -443,8 +445,8 @@ namespace winxframe
 		std::cout << "Calling OnDestroy()\n";
 
 		this->CleanupWindowResources();
-		this->DecrementWindowCount();
-		if (!this->HasEventDrivenWindow() && !this->HasRealTimeWindow())
+		DecrementWindowCount(this->GetPumpMode());
+		if (!WindowCounter::HasEventDrivenWindow() && !WindowCounter::HasRealTimeWindow())
 		{
 			PostQuitMessage(0);
 		}

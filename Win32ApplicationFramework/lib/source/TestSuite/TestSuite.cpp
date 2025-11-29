@@ -1,7 +1,7 @@
 /*!
 lib\source\TestSuite\TestSuite.cpp
 Created: October 21, 2025
-Updated: November 15, 2025
+Updated: November 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Test Suite source file.
@@ -29,15 +29,7 @@ namespace winxframe
 		sectionName_(section), 
 		caseWeight_(weight)
 	{
-		try
-		{
-			TestRegistry::CaseMap()[groupName_][sectionName_].push_back(this);
-		}
-		catch (const Error& e)
-		{
-			e.Log();
-			e.MsgBox();
-		}
+		TestRegistry::CaseMap()[groupName_][sectionName_].push_back(this);
 	}
 
 	/* FUNCTION DEFINITIONS */

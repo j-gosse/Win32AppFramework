@@ -1,7 +1,7 @@
 /*!
 lib\include\win32\Console\Console.hpp
 Created: October 5, 2025
-Updated: November 15, 2025
+Updated: November 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Console header file.
@@ -14,7 +14,6 @@ Console header file.
 
 #include <win32/framework.h>
 #include <win32/resource.h>
-#include "ConsoleColor.hpp"
 #include <span>
 
 namespace winxframe
@@ -75,7 +74,7 @@ namespace winxframe
 		Console& operator=(Console&&) = delete;
 		~Console();
 
-		void WriteText(const std::wstring& text, WORD attribute = console_color::WHITE) const;
+		void WriteText(const std::wstring& text, WORD attribute = static_cast<WORD>(0x07)) const;
 		void ResizeConsoleBuffer(SHORT bufferWidth = CONSOLE_COLUMNS, SHORT bufferHeight = BUFFER_HEIGHT) const;
 		void ResizeConsole(SHORT consoleWidth = CONSOLE_COLUMNS, SHORT consoleHeight = CONSOLE_ROWS) const;
 		void RepositionConsole(int leftX, int topY, int consoleWidth, int consoleHeight, UINT uFlags = 0) const noexcept;

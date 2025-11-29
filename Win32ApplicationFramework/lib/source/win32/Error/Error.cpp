@@ -1,7 +1,7 @@
 /*!
 lib\source\win32\Error\Error.cpp
 Created: October 9, 2025
-Updated: November 22, 2025
+Updated: November 27, 2025
 Copyright (c) 2025, Jacob Gosse
 
 Error source file.
@@ -111,7 +111,7 @@ namespace winxframe
 	Error::~Error()
 	{
 		std::wcout << L"DESTRUCTOR: Error()\n";
-		OutputDebugStringW(L"DESTRUCTOR: Error()\n");
+		OutputDebugString(L"DESTRUCTOR: Error()\n");
 	}
 
 	/* STATIC DEFINITIONS */
@@ -236,7 +236,7 @@ namespace winxframe
 		std::wostringstream woss;
 		woss << L"LOGGED ERROR:\n" << this->Message() << L'\n';
 		std::wcout << woss.str();
-		OutputDebugStringW(woss.str().c_str());
+		OutputDebugString(woss.str().c_str());
 		woss.str(L"");
 		woss.clear();
 
@@ -245,7 +245,7 @@ namespace winxframe
 		if (!causeChain.empty())
 		{
 			std::wcout << woss.str();
-			OutputDebugStringW(woss.str().c_str());
+			OutputDebugString(woss.str().c_str());
 			woss.str(L"");
 			woss.clear();
 		}

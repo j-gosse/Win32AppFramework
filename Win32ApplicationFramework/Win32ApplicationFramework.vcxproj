@@ -133,9 +133,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <Text Include="NOTICE.txt" />
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="lib\include\TestSuite\TestSuite.hpp" />
     <ClInclude Include="lib\include\TestSuite\test_macros.hpp" />
     <ClInclude Include="lib\include\utils\container_utils.hpp" />
@@ -157,6 +154,8 @@
     <ClInclude Include="lib\include\win32\Window\IWindow.hpp" />
     <ClInclude Include="lib\include\win32\Window\MessagePumpMode.hpp" />
     <ClInclude Include="lib\include\win32\Window\Window.hpp" />
+    <ClInclude Include="lib\include\win32\Window\WindowClassRegistry.hpp" />
+    <ClInclude Include="lib\include\win32\Window\WindowCounter.hpp" />
     <ClInclude Include="lib\include\win32\Window\window_manager.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -168,6 +167,7 @@
     <ClCompile Include="lib\source\win32\win32_platform.cpp" />
     <ClCompile Include="lib\source\win32\Window\IWindow.cpp" />
     <ClCompile Include="lib\source\win32\Window\Window.cpp" />
+    <ClCompile Include="lib\source\win32\Window\WindowClassRegistry.cpp" />
     <ClCompile Include="lib\source\win32\Window\window_manager.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -180,6 +180,9 @@
   <ItemGroup>
     <None Include="..\CHANGELOG.md" />
     <None Include="..\README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\NOTICE.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
